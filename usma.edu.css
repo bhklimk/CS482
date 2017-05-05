@@ -1,0 +1,321 @@
+﻿
+/* WARNING: Edit only template.css and build other .css files using make! */
+
+* {
+	font-family: "Nimbus Sans L", "Arial", sans-serif;
+}
+
+body {
+	background: #ffffff;
+}
+
+div.container {
+	/* This makes the sidebar appear to fill the page vertically */
+	background: #ddcca5;
+}
+
+#logo {
+        float: left;
+}
+
+.linkLike {
+	color: #2400ff;
+}
+
+div.logo {
+	background: url(images/logo_background.png) repeat-x;
+	background-repeat: repeat-x;
+	height: 140px;
+}
+
+p.title {
+        color: white;
+        font-size: 80px;
+        line-height: 1;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        padding-left: 0px;
+}
+
+p.subtitle {
+        font-size: 50px;
+        line-height: 1;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        padding-left: 0px;
+
+}
+
+div.side {
+	background: #ddcca5;
+	color: #000000;
+	width: 160px;
+	/* FIXME: removed because it broke style="clear: both" when used in main div */
+	/* Does removing this break Internet Explorer or something? */
+	/* height: 300px; */
+	float: left;
+	font-size: 11px;
+	text-align: right;
+	padding-bottom: 10px;
+}
+
+div.foot {
+	background: #ddcca5;
+	color: #000000;
+	margin-left: 160px;
+	font-size: 75%;
+}
+
+div.side a,p {
+	text-indent: 0;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+div.main {
+	min-height: 300px;
+	padding-top: 21px;
+	padding-left: 30px;
+	padding-right: 10px;
+	padding-bottom: 10px;
+	margin-left: 160px;
+	background: #d6d3d6;
+}
+
+img.drop {
+	margin-right: 10px;
+	margin-left: 10px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
+img.framed {
+	background: #ffffff;
+	border-left: 2px solid grey;
+	border-top: 2px solid grey;
+	border-right: 2px solid black;
+	border-bottom: 2px solid black;
+	padding: 10px;
+	margin: 10px;
+}
+
+td.header {
+	background: lightgrey;
+}
+
+td.red {
+	background: pink;
+}
+
+td.amber {
+	background: lightyellow;
+}
+
+td.green {
+	background: lightgreen;
+}
+
+td.done {
+	background: grey;
+}
+
+tr.red {
+	background: pink;
+}
+
+tr.amber {
+	background: lightyellow;
+}
+
+tr.green {
+	background: lightgreen;
+}
+
+tr.done {
+	background: grey;
+}
+
+a:hover {
+	background: lightyellow;
+}
+
+h1 {
+	font-variant: small-caps;
+}
+
+div.main p {
+	text-align: justify;
+}
+
+div.main p + p {
+	text-indent: 2em;
+	text-align: justify;
+}
+
+div.main p.noindent {
+	text-indent: 0;
+	text-align: justify;
+}
+
+dt {
+	font-weight: bold;
+}
+
+pre {
+	border: 1pt solid black;
+	padding: 5pt;
+	background: lightyellow;
+	white-space: pre;
+	tab-size: 8;
+	font-family: monospace;
+}
+
+kbd {
+	border: 1pt solid black;
+	background: lightyellow;
+	white-space: pre;
+	font-family: monospace;
+}
+
+div.right {
+	width: 384px;
+	float: right;
+	margin: 20px;
+}
+
+div.rightAd {
+	float: right;
+	margin: 20px;
+}
+
+div.map {
+	width: 350px;
+	height: 310px;
+	border-left: 2px solid grey;
+	border-top: 2px solid grey;
+	border-right: 2px solid black;
+	border-bottom: 2px solid black;
+	padding: 10px;
+	margin: 10px;
+}
+
+div.thumbnail {
+        text-align: center;
+	float: right;
+	height: 175px;
+}
+
+div.thumbnail p {
+	text-indent: 0;
+	margin-left: 10px;
+	padding: 0px;
+	text-align: center;
+}
+
+div.thumbnail img {
+	background: #ffffff;
+	border-left: 2px solid grey;
+	border-top: 2px solid grey;
+	border-right: 2px solid black;
+	border-bottom: 2px solid black;
+	padding: 3px;
+	margin-left: 11px;
+	width: 107px;
+}
+
+div.thumbpara {
+        text-align: justify;
+	min-height: 175px;
+}
+
+div.thumbpara p {
+	text-indent: 0;
+	margin-left: 18px;
+	text-align: justify;
+}
+
+div.thumbpara img {
+	float: left;
+	background: #ffffff;
+	border-left: 2px solid grey;
+	border-top: 2px solid grey;
+	border-right: 2px solid black;
+	border-bottom: 2px solid black;
+	padding: 3px;
+	margin-left: 11px;
+	margin-right: 11px;
+	width: 107px;
+}
+
+dl.bibliography dt {
+	margin-bottom: 0.5em;
+}
+
+dl.bibliography dd {
+	margin-bottom: 2em;
+}
+
+table, td, th {
+	border: 1px solid black;
+	border-collapse: collapse;
+	padding-left: 2pt;
+	padding-right: 2pt;
+}
+
+table.constrained, td, th {
+	border: 1px solid black;
+	border-collapse: collapse;
+	padding-left: 2pt;
+	padding-right: 2pt;
+	max-width: 52em;
+}
+
+td.spanner {
+	text-align: center;
+	background-color: #ddcca5;
+}
+
+td.partial {
+	border: 0px;
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+	border-collapse: collapse;
+	padding-left: 2pt;
+	padding-right: 2pt;
+}
+
+
+
+th {
+	color: #ffffff;
+	background-color: #000000;
+}
+
+ul.checklist {
+	list-style: none;
+	margin-left: 1em;
+	text-indent: -1em;
+}
+
+.checklist li:before {
+	content: 'â–¡ ';
+}
+.active {background-color:orange;}
+
+:link {
+	color: #2400ff;
+	font-weight: bold;
+}
+
+:visited {
+	color: #ff0000;
+	font-weight: bold;
+}
