@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>Shellshock</title>
+  <style type="text/css">@import url('usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+<h2>Lesson Summary:</h2>
+<p>On January 24, 2014, a severe vulnerability in Bash was identified, and it is called Shellshock. This affects many systems. The vulnerability can be easily exploited either remotely or from a local machine. In this lab, students need to work on this attack, so they can understand the Shellshock vulnerability. One of the goals for this presentation will be to make the shellshock lab easier for their fellow classmates to attempt on their own (for extra credit).  
+</p>
+
+<h2>Lesson Objectives:</h2>
+<ul>
+<li>Identify the vulnerability</li>
+<li>Understand how processes inherit environmental variables</li>
+<li>Demonstrate yet another code injection attack</li>
+<li>Understand the significance of a bash vulnerability</li>
+
+</ul>
+
+<h2>Lab Material/Resources</h2>
+<ul>
+<li><a href="L.pdf">Shellshock Lab</a></li>
+<li><a href="main.tex">Shellshock tex file</a></li>
+</ul>
+
+</body>
+</html>

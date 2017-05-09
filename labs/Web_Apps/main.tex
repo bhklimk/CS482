@@ -1,0 +1,568 @@
+\input{header}
+\documentclass{article} 
+%\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{upquote}
+\usepackage{alltt}
+\usepackage[latin1]{inputenc}
+\lhead{\bfseries CS482 -- Securing Web Applications Lab}
+
+\newcommand{\tab}[1]{\hspace{.2\textwidth}\rlap{#1}}
+
+
+\begin{document}
+
+
+
+\begin{center}
+{\LARGE Securing Web Applications Lab}\\
+\textbf{35 Points }\\
+\textbf{Due Date: Start of Lesson 14}
+\end{center}
+%\todo{Check date}
+\copyrightnoticeA
+
+\newcounter{task}
+\setcounter{task}{1}
+\newcommand{\tasks} {\bf {\noindent (\arabic{task})} \addtocounter{task}{1} \,}
+
+
+\section{Overview}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{comment}
+Useful commands to move around databases
+https://dev.mysql.com/doc/refman/5.7/en/copying-databases.html
+
+Reseting the root
+http://dev.mysql.com/doc/refman/5.7/en/resetting-permissions.html
+
+CREATE USER '';
+grant all on mysql.* to ''@'%';
+CREATE USER 'csrf_elegg_user'@'localhost' IDENTIFIED BY 'cs482';
+CREATE USER 'xss_elegg_user'@'localhost' IDENTIFIED BY 'cs482';
+CREATE USER 'se_elegg_user'@'localhost' IDENTIFIED BY 'cs482';
+CREATE USER 'wt_elegg_user'@'localhost' IDENTIFIED BY 'cs482';
+CREATE USER 'phpmyadmin'@'localhost' IDENTIFIED BY 'cs482';
+CREATE USER 'wtuser'@'localhost' IDENTIFIED BY 'cs482';
+CREATE USER 'root'@'127.0.0.1';
+GRANT ALL on *.* to 'root'@'127.0.0.1';
+
+
+UPDATE xss_collabtive_db.user SET pass=PASSWORD('ecila') where name ='alice';
+
+
+
+\end{comment}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Previously we explored interactions between network configurations, 
+installation of domain services like DNS, along with the vulnerabilities each 
+faces.  Now it is time to investigate how to secure applications and services that 
+would be deployed on the network.  The main challenge with these applications is
+that they allow access to view and manipulate content on a server by remote users.  A system administrator needs to not only protect the 
+integrity and data of hosted applications from malicious users, but also  
+protect the host system itself from exploitation.
+
+In this lab we will focus on securing common applications 
+such as web and database services.  
+
+\section{Lab Setup}
+For this lab you will need two Ubuntu VMs, each configured with an IPaddress and able to ping each other. PAY CLOSE ATTENTION TO THE CONFIGURATION!  The Lab ``victim'' image is server image with multiple web front-ends and a MySql backend.  It has been specially crafted to be exploitable.  This lab documentation will refer to it as the 10.172.XXX.10 machine or VM2 Server/Victim.    Use the ``Observer'' image for the client, referred to here as 10.172.XXX.11 and VM1 Client/Observer.  
+
+As always, 
+if you make a snapshot of your VM at the beginning of the lab, you can use it 
+to revert to a working version if you encounter problems.  You should 
+turn off any firewall configurations you may have created on these VMs (from previous labs: {\tt sudo ufw disable}).  
+
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=.6\textwidth]{figs/labtopology172.png}
+    \caption{Required Lab Topology}
+    \label{fig:labtopology}
+\end{figure}
+
+This lab will use the preloaded MySQL Database server and Apache Web server.
+Make sure those services are actively running on VM2Server:  
+
+\begin{Verbatim}[frame=single] 
+$ sudo service mysql status  
+(sudo service mysql start|restart)
+$ sudo service apache2 status 
+(sudo service apache2 start|restart)
+\end{Verbatim}
+
+
+
+\section{Lab Part 1: Database Servers}
+
+Databases can present challenges to security. Database implementations can be complex and involve interactions with many other services. Remember, complexity is the enemy of security (a violation of economy of mechanism). Most database systems include an internal set of roles, privileges, and security settings separate from those of the host operating system. These settings must be configured correctly to ensure confidentiality, integrity, and availability of the information the database contains. 
+
+Further, databases tend to contain high-value information that an adversary might want to steal, manipulate, or destroy. Examples include credit card information, medical patient records, or situational awareness tracking data for a military command and control system.
+
+You will use the popular MySQL RDBMS (relational database management system) product to explore some of the issues with securing databases.  SQL stands for Structured Query Language and is the most widely used database programming standard in use today.  In addition to MySQL, the SQL standard is used by Oracle and Microsoft products.  MySQL as a product is used commercially by many of the largest companies in the world to manage customer and product data with web front-ends.  An unsecured MySQL server is a huge vulnerability.  
+
+This lab illustrates a few select database security concepts.  In a production environment, you should deploy a fully secured database.  For example, the National Vulnerability Database provides a checklist for server implementations:
+ {\tt http://www.nvd.nist.gov/view/ncp/repository }
+
+%Additionally, the Wikipedia entry for SQL contains a good explanation of detailed operation, as does 
+The main MySQL website contains a good explanation of detailed operation, available at \\{\tt http://www.mysql.com/}
+
+\subsection{Basic MySQL Configuration}
+For Part 1 of this lab, you will be configuring the MySQL database on VM2Server.  MySQL has a command-line ``shell'' interface.  MySQL is a database that stores all run-time information about the database (individual databases, user accounts, permissions) as yet another database within it.
+
+\begin{itemize}
+\item MySQL's configuration files can be found in {\tt /etc/mysql}
+\end{itemize}
+
+\subsubsection{Database Interaction}
+
+\noindent
+One change we want to make is to control external network access to MySQL.   In a production environment, the database server would be installed on a computer on the internal network and access would be restricted such that a web server was the only externally-facing computer able to communicate with it.  This would be accomplished with a combination of firewall settings, SSH, and/or IPsec. In this exercise, our web server is on the same machine as the database server, so we set up MySQL to only listen for network connections from the {\tt localhost}, rejecting all others  (see Figure \ref{fig:sqlaccess}). Note: it is also possible to disable MySQL networking completely and use only \emph{named pipes} for inter-process communication. However, some applications will not support this.
+
+\begin{comment}
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=.9\textwidth]{figs/sqlaccess.png}
+    \caption{MySQL Server with access limited to {\tt localhost}}
+    \label{fig:sqlaccess}
+\end{figure}
+
+\end{comment}
+
+\begin{itemize}
+\item In the MySQL configuration file, verify that the {\tt bind-address} is the localhost address, {\tt 127.0.0.1}
+\item Using linux commands, verify that your VM is listening on {\tt 127.0.0.1}. \par(Hint: you learned how to do these things in Lab 1).
+  
+\end{itemize}
+
+\questionblock{\myquestion Which file is the main MySQL configuration file? What port is MySQL listening on? How did you determine this? How should you filter access to this port, if at all?}
+%ANS /etc/mysql/mysql.conf.d/mysqld.cnf
+%ANS sudo lsof -I:3306
+
+\subsubsection{Server user} Determine what userID runs the {\tt mysqld} server process.  Verify this by checking the running process.  Note that we could specify a different user in the mysql configuration file, if needed. However, the default will work for now.
+
+
+\questionblock{\myquestion Under what user name is {\tt mysqld} running? What is the numeric user ID value for this account? Why would we NOT want to run {\tt mysqld} as root?  } \\
+%ANS mysql, 121, least priv
+\noindent 
+
+\subsubsection{Database Availability}
+Now that we have done some hardening on the host system, let's look inside MySQL.  For most of the rest of this part of the lab, you'll be interacting direcly with MySQL inside the command shell.  \emph{You must end all commands to {\tt mysqld} with a semicolon as shown below!}
+
+\begin{itemize}
+\item Open a terminal window and enter:  {\tt \$mysql -u root -p}  to connect to the local MySQL DB. Enter the password {\tt `toor'} when prompted.  (Note: you can use up-arrow to re-run commands in your mysql session history.)
+\item Check the status of the MySQL server: \\ {\tt mysql> status;}
+\item Check what databases are present on this server: \\ {\tt mysql> show databases;}
+
+\item The {\tt mysql} database contains master control information for the database server.   This includes a set of roles and privileges separate from those of the host system. You can see what is contained in this database by entering: \\
+	{\tt mysql> use mysql;} \tab{...to make the {\tt mysql} db active} \\
+	{\tt mysql> show tables;} \tab{...to see the tables in the {\tt mysql} db}
+\end{itemize}
+
+
+\subsubsection{Database Users}
+Database services such as MySQL have their own internal set of user roles that control who can interact with the database and the actions they can perform (select, insert, drop, etc.) These accounts are not the same as the accounts on the underlying operating system. We typically refer to these roles with a {\tt <username>@<hostname>} format. This allows for assigning specific privileges to users on the local system as well as users logging in from remote systems.
+
+\begin{itemize}
+\item You can see all the possible data fields for a database role with (you may want to maximize your bash terminal): \\
+{\tt mysql> describe user;}
+
+\item Now examine the roles set up in MySQL:  
+\begin{verbatim}
+mysql> select user, host, authentication_string  from user;
+\end{verbatim}
+\end{itemize}
+
+\questionblock{\myquestion   What did this query return? Provide a screen shot.}
+
+\questionblock{\myquestion Examine the results in the password field -- does MySQL use password salts? How can you tell?}
+
+\begin{itemize}
+\item Sometimes there is a {\tt null} entry in the user table. This permits anonymous access to MySQL. Unless we really want to allow this, we should purge this null account. The commands below will remove all roles other than {\tt root@localhost}. BE EXTREMELY CAREFUL WITH THESE COMMANDS. Do not do this to a production DB unless you know you are not about to cripple the system. Enter: \\
+	%{\tt mysql> delete from db;  } \\
+	{\tt mysql> delete from user where not (host="localhost" and user="root");  }
+	{\tt mysql> flush privileges; }
+
+\item The database service typically has a {\tt root} role with complete control over the server. We would normally want to rename {\tt root}, possibly adding a crippled, decoy {\tt root} account, similar to renaming Administrator on Windows systems.  We could use the {\tt root} role to interact with this database, but that would be a gross violation of least-privilege. Now create a few limited user accounts: 
+\begin{alltt}
+mysql> grant insert,select on phpmyadmin.* to cs482@localhost
+identified by '284sc'; 
+mysql> grant select on phpmyadmin.* to CadetSmith@localhost 
+identified by 'abc123!';
+\end{alltt}
+
+\item Now enter:	
+\begin{verbatim}
+mysql> select user,host, authentication_string from mysql.user;
+\end{verbatim}
+
+\end{itemize}
+
+\begin{itemize}
+\item Enter:	 \\
+{\tt mysql> show grants for cs482@localhost;} \\
+{\tt mysql> show grants for root@localhost;}
+
+\item Compare the privileges granted to these two users.  Note that these database services allow for very fine-grained control of the ways users can query and alter the database.
+\end{itemize}
+
+
+\questionblock{\myquestion Provide a screen shot of your work.}
+
+\subsubsection{Individual Databases} While there is a single {\tt mysql} process, it manages many databases, each with their own sets of users, tables, data, and individual permissions for those users.  
+
+\begin{itemize}
+\item Now look closer at a sample database:  \\
+{\tt mysql> use xss\_collabtive\_db; } \\
+{\tt mysql> show tables; }
+
+\end{itemize}
+You should now see a database schema for the {\tt xss\_collabtive\_db} database.
+
+\questionblock{\myquestion What tables are in the {\tt xss\_collabtive\_db} database?  }
+
+\begin{itemize}
+\item Now select the database: \\
+{\tt mysql> use xss\_collabtive\_db; }\\
+{\tt mysql> select * from user; }
+\end{itemize}
+
+\questionblock{\myquestion Who are the users in this table? What conclusion could you possibly infere about {\tt admin} and {\tt alice}? (Hint: widen your terminal window to see the table formatting better.)} \\
+
+\noindent	 
+Note that these are not MySQL users nor are they user accounts on the Ubuntu OS, they are user accounts for the web application that references this {\tt xss\_collabtive\_db} database.  This is an additional level of things that would need to be secured.
+
+\subsubsection{Individual Users}
+
+Now examine what you can do with the {\tt cs482} user.
+
+\begin{itemize}
+\item Close your {\tt root} session with the database: \\
+{\tt mysql> exit; }
+\item Then reconnect to the database as cs482.  When prompted, use the password you created for the account above: \\
+{\tt \$mysql -u cs482 -p }
+\item Now look at the databases table: \\
+{\tt mysql> show databases;   }
+\end{itemize}
+
+Note that {\tt cs482} cannot even see the {\tt mysql} database. This user does not have the authority administer the database service.
+
+\begin{itemize}
+\item Try to drop the {\tt phpmyadmin} database: \\
+{\tt mysql> drop database phpmyadmin;}
+\end{itemize}
+
+\questionblock{\myquestion What is the significance of drop? What error number do you get? Why?  } \\
+\noindent
+Log out of {\tt mysql} to end this part of the lab.  
+
+\section{Lab Part 2: Web Servers}
+
+Web servers are a common source of network vulnerabilities. A poorly configured web server can represent a gaping security hole. Moreover, it is not uncommon to find web servers that were installed to support an application or an outdated function that are left unmanaged or neglected.
+
+For Part 2 of this lab, you'll be reconfiguring the Apache web server on VM2Server.  You'll be testing various changes to this web server using Firefox on the VM2Server  and also on VM1Client.  Take a few minutes now to disable caching on your web browser so that every time you reload a web page, the browser contacts your web server for it instead of using a local version of the page.  
+
+\begin{itemize} 
+\item In the Firefox address bar, type {\tt about:config} to get a page of various preferences that you can change.  You will first be presented with a warning, click ``I'll be careful, I promise!''.  
+\item In the ``Search:''  at the top, type {\tt browser.cache} to filter for the cache options (see Figure \ref{fig:browsercache}).  
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=.9\textwidth]{figs/Firefox-cache.png}
+    \caption{Configuring the Firefox browser cache}
+    \label{fig:browsercache}
+\end{figure}\item Locate and change entries as follows:
+
+\begin{enumerate}
+\item {\tt browser.cache.memory.enable} -- double-click to set the Value to ``false''.  This will turn off browser caching in memory.
+\item {\tt browser.cache.disk.enable} -- double-click to set the Value to ``false''.  This will turn off browser caching on the disk drive.
+\item {\tt browser.cache.check\_doc\_frequency} -- double-click to open a dialog box to change the frequency, set this to 1 and click ``OK''.  This will force the browser to verify a page each time you load it.  
+
+\end{enumerate}
+\end{itemize}
+
+Make sure to do these changes on both of your VMs!\\
+
+To ensure that you are only accessing the webserver on VM2Server, make sure to turn it off on VM1Client: {\tt sudo service apache2 stop}
+
+\subsection{Secure a Web Server.}
+
+
+Apache is a powerful, open-source web server produced by the Apache Software Foundation. Apache is available for a wide range of operating systems including *nix and Microsoft Windows, serving about 60\% of all web sites. We will work with Apache in this lab. The principles covered here also apply to Microsoft's Internet Information Server but the interface and details differ significantly. In any case, this lab illustrates a few key concepts; you should consult a detailed security configuration guide when configuring a production web server.  Learn more at {\tt http://httpd.apache.org/}
+	
+\subsection{Basic Apache Configuration}
+
+The configuration files for Apache are located in {\tt /etc/apache2}.  In the canonical Apache installation, the master configuration file is {\tt httpd.conf} (not present).  The Lab Ubuntu VM has the Debian variant of Apache installed, which has expanded the configuration options.  A missing or empty {\tt httpd.conf} means several other files manage the configuration.  This variant allows ``name-based virtual hosting'' which means that one web server can serve multiple websites when accessed with different URLs.  Some configurations are global to all of the sites hosted by the web server.  Some configurations are specific to the virtual host for a specific website.  (Hint: the linux command {\tt grep} is useful for searching for items in files.  {\tt man grep} for more details, particularly how to search through a subdirectory tree.)
+
+These are the key configuration files:
+\begin{itemize}
+\item {\tt apache2.conf} -- contains the master configuration parameters common to all hosted sites
+\item {\tt envvars} -- contains some host-specific execution parameters for the {\tt httpd} process, used in combination with apache2.conf
+\item {\tt ports.conf} -- the specific ports that the webserver listens on for various virtual hosts
+\item {\tt /conf-available} -- contains additional global configuration files for the webserver.
+\item {\tt /mods-enabled} -- this directory contains the various optional modules that add features to the webserver.  Each of them has a module-specific configuration file.
+\item {\tt /sites-available/000-default.conf} -- this file describes the various virtual hosts supported by this webserver and specifies configuration and access control lists for each of them.  
+\end{itemize}
+You may need to look in or modify several of these files to complete the tasks and answer the questions below.  
+
+\subsubsection{Webserver availability}
+
+Locate the {\tt Listen} option.  It should be set to 80.  The directive {\tt "NameVirtualHost *"} instructs the web server to use all IP addresses and ports on the machine for the given site (some machines may have multiple IP addresses).  Each website has a Virtual Host block in {\tt /sites-enabled/000-default} that specifies the URL for the website and the directory in the file system that contains the source files for the website.  The DNS on VM2Server is configured so that all of those website URLs point to {\tt localhost}, so you should be able to load any of them in your browser on VM2Server.  
+
+\questionblock{\myquestion What file is the {\tt Listen} option in?  What does port 80 mean?  How many websites are available through this port?  What do you have to change to get {\tt www.wtmobilestore.com} to respond on port 9000?}
+
+\subsubsection{Server user and group}
+
+Locate the server {\tt User} and {\tt Group} options.  These specify which system user and group owns and runs the webserver {\tt httpd} process.  It is an extremely bad idea to run a web server as {\tt root}. Fortunately, as you can see, Apache is configured to run under another context.  
+
+\questionblock{\myquestion Under what user and group is Apache configured to run?  Where did you find this?}
+
+\subsubsection{Modules}
+
+The {\tt /mods-enabled} directory specifies the modules Apache will use. These modules add features such as authentication, encryption, enhanced logging and support for languages such as php and Ruby to the Apache core functionality. One popular third-party module is modsecurity, provided by Trustwave SpiderLabs.   
+
+\questionblock{\myquestion What is modsecurity? Is it compatible with our Apache version?}
+
+\subsubsection{Administration and naming}
+
+\begin{itemize}
+\item Locate {\tt ServerAdmin}. If you wish to have a point of contact e-mail address for the web server, it is set here. This should be set to minimize disclosure of sensitive information, since it may appear in various error messages by default. (Also, it may become a spam magnet...) Set the {\tt ServerAdmin} address to: {\tt cs482@mail.cs482lab.cdx} for this exercise.  
+	
+\item Locate the following parameters and configure them as follows:\\
+{\tt ServerSignature Off } \\
+{\tt 	ServerTokens Prod } \\
+These options suppress the server version number in page footers and HTTP responses, respectively. The server replies simply with `Apache', making life a bit harder for a would-be attacker.
+
+\item Locate {\tt ServerName}. This is the FQDN (fully-qualified domain name) the server uses to refer to itself. Change this to read: {\tt www.cs482lab.cdx:80 } (Note: you can also add this below {\tt ServerAdmin})
+
+%\item After the {\tt ServerName} line, add a new option: \\
+%{\tt 	UseCanonicalName on }
+
+\item Save your files and reboot Apache:\\
+{\tt sudo service apache2 restart}
+
+%\item Close your browser and re-load {\tt http://10.172.xxx.bbb/webtracking/CameraStore} on VM2Server.  What happens to the URL?
+
+%\item Comment out {\tt UseCanonicalName on} for the rest of this lab.
+\end{itemize}
+
+%\questionblock{\myquestion Refer to Apache documentation to understand what the {\tt UseCanonicalName} option does.  What are the various settings?  How might you want it to be configured for the website setup on VM2Server?  }
+
+\subsubsection{Content locations}
+
+Locate {\tt DocumentRoot}. This specifies the base location for the web pages and other content. If you want to store the content in a different location it is important to update this setting.
+
+\questionblock{\myquestion  What file did you find it in?  What is the {\tt DocumentRoot} setting for this server?   What are the websites configured to run on this webserver?}
+
+\begin{itemize}
+\item Save your changes to the various configuration files and restart apache.\\
+{\tt sudo service apache2 restart}
+
+%\todo{Add index.html to victim at var www}
+
+\item On VM1Client, use Firefox and try to access your webserver using the VM2Server IP address to verify that it is working ({\tt http://10.172.xxx.bbb}). If you do not get the ``It works!'' page on VM1Client, do not continue with the lab until your webserver is running properly.  
+\end{itemize}
+
+\subsubsection{Setting Site Access Policy}
+
+Apache allows for access controls on the directories that constitute the web site(s) served. It is possible to exercise very fine-grained control over access to the site content. Now look at a few settings to get a feel for this.
+\begin{itemize}
+
+\item Open the file that specifies {\tt DocumentRoot} again and look for the option {\tt < Directory />}\\
+This is the default policy for the {\tt DocumentRoot} and everything below. We set this to deny everything by default, then add specific exceptions later. This helps prevent access to unlinked pages or objects and other items we do not actually intend to publish. The default policy is to block. We can make it a bit stronger by setting:
+\end{itemize}
+
+\begin{Verbatim}[frame=single]
+	<Directory />
+		Options None
+		Order allow,deny
+		Deny from all
+		Satisfy all
+		AllowOverride None
+	</Directory> 
+\end{Verbatim}
+We will see what these statements mean shortly. 
+
+\begin{itemize}
+\item Scroll down to the directory policy entry for your `document root' directory. This is a fairly permissive policy, so we will lock it down a bit.
+\end{itemize}
+The {\tt Options} line controls some of the behavior of this directory.  The {\tt Indexes} option controls how the server responds if no page is specified in a requested URL. Apache will return the {\tt index.html} default page if it exists. If {\tt index.html} is not found and the {\tt Indexes} option is set, Apache will still return data. Give it a try:
+\begin{itemize}
+\item Go to the document root directory on VM2Server and rename the {\tt index.html} file to \\
+{\tt``<yourname>.html''}.  
+\item On VM1Client, try to access the webserver again.  
+
+\end{itemize}
+
+\questionblock{\myquestion  What did the web server return to the browser this time?} \\
+\noindent 
+This could disclose information about the internal structure of the site and should normally be suppressed. 
+\begin{itemize}
+\item Delete the word ``{\tt Indexes}'' from the {\tt Options} line.  
+\item Save your changes and restart Apache. 
+\item Then reload the VM1Client browser again.
+
+\end{itemize}
+\questionblock{\myquestion  What did the server return with the {\tt Indexes} option deleted?  }
+
+\begin{itemize}
+
+\item Ensure you are still be able to see the homepage at: {\tt http://10.172.xxx.bbb/<yourname>.html}
+ 
+\item Leave {\tt AllowOverride None} as it is. We will examine this statement in a moment.
+
+\item The next setting is {\tt Order}. This specifies the order in which ``allow'' and ``deny'' statements are applied for access control and the default behavior. 
+\par -- {\tt Order allow,deny} applies all ``allow'' statements first, then any ``deny'' statement, with a default ``access denied'' if no allow match applies. Use this if you want to allow access from a few specific sites or users and deny all others.  Leave the setting this way.
+\par -- {\tt Order deny,allow} is the opposite, with a default ALLOW if a matching ``deny'' is not found. Use this where most everyone is allowed, such as a public web page, but specific sites or users will be denied explicitly. 
+
+\item {\tt Allow} and {\tt Deny} statements control access by single IP address, network (in CIDR notation), or a domain (this is where those DNS reverse lookup zones come into play). 
+
+\item Change the {\tt Allow from all} statement to {\tt Allow from 127.0.0.1}
+\item Save this change and restart Apache.
+
+\item On your client machine, attempt to access {\tt http://10.172.xxx.bbb/<yourname>.html} again (or just try to refresh the page).
+\end{itemize}
+\questionblock{\myquestion  What response do you get from the web server now?}
+
+\begin{itemize}
+\item Change the allow statement to read:	\\
+{\tt Allow from 10.172.xxx.0/24} \\
+{\tt Allow from 127.0.0.1}
+
+\item Save this change, restart Apache, and reload the site on VM1Client. You should get the pages again. 
+\end{itemize}
+
+\subsubsection{Setting Per-Page Access Policy}
+
+Sometimes it makes sense to apply global access policies to all of the content on a webserver, but individual content creators want to create more specific policies for some files.  In a web content folder the {\tt .htaccess} file is used to delegate authority to web site developers, allowing them to control aspects of site access without needing the ability to edit {\tt httpd.conf} or restart the web server.  (Remember ``least-privilege''?)  The {\tt AllowOverride} option lets us control if, and how, an {\tt .htaccess} file in a content folder is allowed to override the policy set in the master server config files.  If you will not be delegating authority, or are not sure, set {\tt AllowOverride None}, to prevent a stray or malicious {\tt .htaccess} file from opening a hole in your site. 
+
+For this task, you'll be setting policies for one of the sample websites included with the VM2Server webserver. 
+
+\begin{itemize}
+\item In the VM1Client browser, load the website:\\
+{\tt http://10.172.xxx.bbb/webtracking/CameraStore}
+
+\item Look at the page to familiarize yourself with what it looks like.  
+
+\item On VM2Server, after the end {\tt </Directory>} of the ``document root'' directory policy, add a new directory policy:
+\end{itemize}
+\begin{Verbatim}[frame=single]
+	<Directory /var/www/webtracking/CameraStore/images>
+		Order allow,deny
+		AllowOverride Limit
+	</Directory>
+\end{Verbatim}
+\begin{itemize}
+\item Save your changes and restart Apache, then reload the site in the VM1Client  browser. You should see that the image files are no longer rendered. 
+\end{itemize}
+
+\questionblock{\myquestion  Provide a screen shot. }
+
+
+Since we added an {\tt AllowOverride Limit} statement, we can add an {\tt .htaccess} file in the images directory to override the policy and allow access by IP address, network or domain. 
+\begin{itemize}
+
+\item Go to the ``images'' directory listed above and create a file called {\tt .htaccess}
+
+\item Add this text to the file:\\
+{\tt	Allow from 10.172.xxx.0/24}\\
+{\tt	Allow from 127.0.0.1}
+
+\item Save the file. 
+\item Reload the site in the VM1Client browser. You should now see the images rendered. (Note that you do not need to restart Apache for this change to take effect; the {\tt .htaccess} file is read when the {\tt http GET} is processed.) 
+\end{itemize}
+
+\subsubsection{Password Authentication}
+
+Finally, we will look at password-protecting the site. Note that the standard Apache install supports only Basic and Digest authentication. Apache modules supporting stronger authentication methods are available.  Internet Information Server also supports stronger authentication, especially within a Windows AD domain. 
+
+The Apache password files consist of {\tt username:password\_hash} pairs. It is possible but HIGHLY DISCOURAGED to use the {\tt /etc/shadow} or {\tt master.passwd} file for your web site authentication. We can create a new web site password file with the {\tt htpasswd} command. 
+
+\begin{itemize}
+\item Create a new password file and a user account for Scooby with:\\
+{\tt sudo htpasswd -cs /etc/apache2/.htpasswd-users scooby } 
+
+(Note that the -c option creates a new file, overwriting any existing file, so only use -c the first time.)
+\item Set Scooby's password to: {\tt snacks}
+\end{itemize}
+\questionblock{\myquestion  What does the -s option for htpasswd mean? }
+
+\begin{itemize}
+
+\item Now add an account for Shaggy:\\
+{\tt sudo htpasswd -s /etc/apache2/.htpasswd-users shaggy}
+\item Set Shaggy's password to: {\tt zoinks}
+
+\item Now add password authentication to the web site policy. Edit the main {\tt 000-default} config file. In the directory policy entry for your ``document root'' directory, add these statements:
+\end{itemize}
+\begin{Verbatim}[frame=single]
+<Directory /var/www/>
+    AuthType Basic
+    AuthName "Mystery Machine"
+    AuthUserFile "/etc/apache2/.htpasswd-users"
+    Require valid-user
+    Order allow, deny
+    Allow from all
+</Directory>
+\end{Verbatim}
+\begin{itemize}
+\item Save the config file and restart Apache. 
+\item On VM1Client, start Wireshark and capture traffic on the main interface.  
+\item Reload {\tt http://10.172.xxx.bbb/<yourname>.html} in the VM1Client browser. You should receive a dialog box asking for a username and password for ``Mystery Machine''. Enter one of the accounts you created. 
+\item In your packet capture, find the HTTP GET request packet after the AUTH request packet. Look at the Authorization: Basic field under the HTTP protocol, you should see that the user name AND password were easily sniffed by WireShark. This is one reason why using your system's shadow file for basic web site authentication is discouraged. NOTE: Don't worry later in this course we will create certificates that will enable us to use SSL i.e. HTTPS.
+\end{itemize}
+
+\questionblock{\myquestion  Provide a screen shot. }
+
+
+
+\subsubsection{Web Server Logging}
+
+Apache maintains an access log, an error log, and a referrer log. These are useful for troubleshooting and monitoring web site activity.
+
+\begin{itemize}
+    \item Look at the most recent entries in the main log file: \\
+    {\tt tail  /var/log/apache2/access.log}
+
+\end{itemize}
+
+\questionblock{\myquestion  What browser and operating system versions did Apache record for your connection from VM1Client? } \\
+\noindent
+An additional step to secure these services would be to {\tt chroot} them. That process is beyond the scope of this lab, but is an excellent addition for security of a production system (\emph{e.g.}, CDX)
+
+\questionblock{\myquestion  What is {\tt chroot} ? Describe one way {\tt chroot}-ing Apache and/or MySQL would improve security.} \\
+
+\noindent
+There is a great deal more to security for production web sites. This should provide an introduction to some of the issues and give you a start in learning more about this topic.
+
+\section{Submission requirements}
+
+\subsection{Partner Submission}
+
+Provide one written lab report, answering each question properly labelled with the number and original question, per partner team. Be sure to include the time spent on the lab and document any external resources used. 
+Again good documentation: 
+\begin{enumerate}
+\item clearly enumerates tasks with a description of you did and evidence.  
+\item shows the progress you were able to achieve.
+\item explains your troubleshooting attempts.
+\item accurately describes an issue and the potential solution (if really good, I will give near full credit).
+\end{enumerate}
+
+
+\subsection{Individual Submission}
+Each member needs to submit a detailed lab reflection. This includes 
+\begin{itemize}
+\item approximately one half page that talks about the various security issues and princples from Chapter 2. 
+\item any challenging points or thoughts on what you found interesting during the lab 
+\item time spent you personally spent and how much effort you put forth
+\item time your partner spent, and how much effort they put forth
+\item be sure document any external resources used. 
+\end{itemize}
+
+
+
+\vspace{.2in}
+
+\end{document}

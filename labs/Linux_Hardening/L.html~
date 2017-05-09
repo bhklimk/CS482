@@ -1,0 +1,45 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>Lesson3</title>
+  <style type="text/css">@import url('usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+<h2>Lesson Summary:</h2>
+<p>In this lesson we will finish our discussion of fundamental security princples and discuss access control models.
+ This lesson is intended to provide an overview of the UNIX  
+system while creating a baseline understanding of how the many different flavors of 'NIX are similar 
+and different at the same time. Students will practice reading and modifying file permissions, 
+managing group settings, starting and stopping processes and general system hardening tasks.</p>
+
+<h2>Lesson Objectives:</h2>
+<ul>
+<li>Explain how access control fits into the broader context that includes authentication, authorization, and auditing</li>
+<li>Define the major categories of access control policies</li>
+<li>Distinguish among subjects, objects, and access rights</li>
+<li>Describe the UNIX file access control model</li>
+<li>Understand Unix operating system operation and successfully navigate/modify system settings</li>
+<li>Identify vulnerabilities and apply system hardening procedures for production systems</li>
+<li>Review the essential shell commands</li>
+<li>Manage users and groups, including wheel and sudoers</li>
+<li>Explain file permissions and how to modify them</li>
+<li>Manage processes, services, and system startup/shutdown</li>
+</ul>
+
+<h2>Tasks Prior to Class:</h2>
+
+<h2>Lab Material/Resources</h2>
+<ul>
+<li><a href="Lab1.pdf">UNIX/Linux Security Lab</a></li>
+</ul>
+<h2>Lesson 3 Slides:</h2>
+<ul>
+<li><a href="lesson3.pdf"> Lesson 3 </a> </li>
+</ul>
+</body>
+</html>

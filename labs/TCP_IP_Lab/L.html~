@@ -1,0 +1,70 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>Lesson5</title>
+  <style type="text/css">@import url('usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+<h2>Lesson Summary:</h2>
+<p>
+Students will gain first-hand experience on vulnerabilities associated with common communication protocols. 
+Wise people learn from mistakes. In security education, we study mistakes that lead to software vulnerabilities. 
+Studying mistakes from the past not only help students understand why systems are vulnerable, why poor assumptions or a "seemly-benign" mistake 
+can turn into a disaster, and why many security mechanisms are needed. More importantly, it also helps students learn the common 
+patterns of vulnerabilities, so they can avoid making similar mistakes in the future. Moreover, using vulnerabilities as case studies,
+students can learn the principles of secure design, secure programming, and security testing.
+
+The vulnerabilities in the TCP/IP protocols represent a special genre of vulnerabilities in protocol designs and implementations; 
+they provide an invaluable lesson as to why security should be designed in from the beginning, rather than being added as an afterthought. 
+Moreover, studying these vulnerabilities help students understand the challenges of network security.
+
+</p>
+
+<h2>Lesson Objectives:</h2>
+<ul>
+<li>Demonstrate understanding of TCP/IP communications and network protocols</li>
+<li>Apply understanding of TCP/IP communications to execute attacks</li>
+<li>Demonstrate vulnerabilities of TCP/IP communications to attacks such as:</li>
+<ul><li>ARP Poisoning</li>
+<li>ICMP Redirects</li>
+<li>SYN Flood</li>
+<li>TCP/RST</li>
+<li>Session Hijacking</li></ul>
+<li>Identify flaws and violations of fundamental security principles</li>
+</ul>
+
+<h2>Tasks Prior to Class:</h2>
+
+<h2>Lab Material/Resources</h2>
+<ul>
+<li><a href="Lab3.pdf">TCP/IP Lab</a></li>
+</ul>
+<h2>Lesson 6 Slides:</h2>
+<ul>
+<li><a href="lesson 6.pdf"> Lesson 6 </a> </li>
+</ul>
+
+<h2>Exploration Material:</h2>
+<ul>
+<!-- <li><a href="Lessons/Lesson 2/Packet_Headers_Subnet_Breakdown.xls">
+    Packet Header Breakdown</a></li> -->
+<li><a href="http://www.cis.syr.edu/~wedu/seed/Documentation/Misc/netwox.pdf">
+    Netwox/Netwag Guides</a>, by Sridhar Iyer.</li>
+<li><a href="http://www.gont.com.ar/drafts/icmp-attacks-against-tcp.html">
+    ICMP attacks against TCP</a>, by Gont, F.</li>
+<li><a href="http://osvdb.org/ref/04/04030-SlippingInTheWindow_v1.0.doc">Slipping
+    in the Window: TCP Reset attacks</a>, by Paul A. Watson. </li>
+<li><a href="http://lcamtuf.coredump.cx/newtcp/"> Strange Attractors
+    and TCP/IP Sequence Number Analysis</a> by Zalewski. </li>
+<li><a href="http://www.insecure.org/nmap/nmap-fingerprinting-article.html">Remote
+    OS detection via TCP/IP Stack FingerPrinting</a> by Fyodor, 1998. </li>
+<li><a href="https://en.wikipedia.org/wiki/List_of_network_protocols_(OSI_model)#Layer_7_.28Application_Layer.29"> Network Protocols</a></li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>PKI</title>
+  <style type="text/css">@import url('../../usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+<h2>Lesson Summary:</h2>
+<p>The learning objective of this lab is for students to get familiar with the concepts of Public-Key encryption and Public-Key Infrastructure (PKI). After finishing the lab, students should be able to gain a first-hand experience on public-key encryption, digital signature, public-key certificate, certificate authority, authentication based on PKI. Moreover, students will be able to use tools and write programs to create secure channels using PKI.</p>
+
+<h2>Lesson Objectives:</h2>
+<ul>
+<li>Understand the differences between a public and private keys</li>
+<li>Understand the theoretical foundations for PKI</li>
+<li>Generate and publish own public and private key pairs</li>
+<li>Apply understanding of programming concepts to implement OpenSSL tunnel</li>
+</ul>
+
+<!-- <h2>Tasks Prior to Class:</h2> -->
+
+<h2>Lab Material/Resources</h2>
+<ul>
+<li><a href="L.pdf">PKI </a></li>
+<li><a href="main.text">PKI tex file</a></li>
+</ul>
+</body>
+</html>

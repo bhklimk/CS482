@@ -1,0 +1,40 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>Web Attacks</title>
+  <style type="text/css">@import url('../../usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+<h2>Lesson Summary:</h2>
+<p>In part two of our three lesson web block, we focus on SQL injection as way to 
+undermine the integrity of back-end database systems. SQL injection is a code injection technique that 
+exploits a security vulnerability occurring at interface between the web front-end and the database back-end. 
+The vulnerability is 
+present when user input is either incorrectly filtered for string literal escape characters embedded in SQL 
+statements or user input is not strongly typed and thereby unexpectedly executed. 
+Many web pages take parameters from web user, and make SQL queries to a database. 
+SQL Injection, it is possible for us to send crafted user name and/or password field that will change the SQL query 
+and thus grant us something else. In this lab, we'll exploit SQL injection.</p>
+
+<h2>Lesson Objectives:</h2>
+<ul>
+<li>Understand and Implement basic web vulnerability attacks</li>
+<li>Demonstrate a SQL injection</li>
+<li>Demonstrate a XSS Attack</li>
+<li>Apply understanding of attack methods to protect critical infrastructure</li>
+</ul>
+
+<h2>Tasks Prior to Class:</h2>
+
+<h2>Lab Material/Resources</h2>
+<ul>
+<li><a href="L.pdf">Web Attack </a></li>
+<li><a href="main.tex">Web Attack file</a></li>
+</ul>
+</body>
+</html>

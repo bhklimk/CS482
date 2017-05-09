@@ -1,0 +1,649 @@
+\input{header}
+
+%\documentclass{article} 
+%\usepackage{graphicx}
+%\usepackage{color}
+%\usepackage[latin1]{inputenc}
+%\usepackage{lgrind}
+%\input {highlight.sty}
+
+\lhead{\bfseries CS482 -- Remote DNS Cache Poisoning Attack Lab}
+
+
+\def \code#1 {\fbox{\scriptsize{\texttt{#1}}}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE Remote DNS Cache Poisoning Attack Lab}\\
+%\textbf{30 Points}\\
+%\textbf{Due Date: 31-AUG (Day 1)/1-SEP (Day 2)}\\
+\end{center}
+
+%\copyrightnoticeA
+
+\section{Lab Overview}
+
+The objective of this lab is for students to gain the first-hand experience
+on the remote DNS cache poisoning attack, also called the Kaminsky
+DNS attack~\cite{Kaminsky}. DNS~\cite{bib1} (Domain Name System) is the
+Internet's phone book; it  
+translates hostnames to IP addresses and vice versa.
+This translation is through DNS resolution, which happens behind
+the scene. DNS Pharming\cite{bib4} attacks manipulate this resolution process
+in various ways, with an intent to misdirect users to
+alternative destinations, which are often malicious. 
+This lab focuses on a particular DNS Pharming attack technique, called 
+{\em DNS Cache Poisoning attack}. 
+In this remote attack lab, packet sniffing is not 
+possible, so the attack becomes much more challenging than
+if it was conducted on the local network.
+
+
+
+
+
+\section{Lab Environment}
+
+
+We will setup the lab environment using one single physical machine, which
+runs three virtual machines. The lab environment actually needs three seperate machines, including 
+a computer for the victim user, a DNS server, and the attacker's
+computer. These three VMs will run the provided \ubuntu image at \texturl{http://www-internal.eecs.usma.edu/courses/cs482/setup/s3.ova}.  
+NOTE: Modern bind is robust against this attack so you need to use this specific VM image.
+% For the VM network setting, if you are using {\tt VirtualBox}, please use
+% {\tt "NAT-Network"} as the only network adapter for each VM. 
+% If you are using {\tt Vmware}, the default {\tt "NAT"} setting is good enough.
+
+\begin{verbatim}
+     VM 1 (Attacker)         VM 2 (Victim)      VM 3 (Observer)
+        10.172.x.16           10.172.x.14        10.172.x.15
+           |                       |                       |
+           |_______________________|_______________________|
+           |                Virtual Switch                 |
+           |_______________________________________________|
+\end{verbatim}
+\label{environment}
+
+The figure above illustrates the setup of the lab environment. For the 
+sake of simplicity, we do put all these VMs on the same LAN, but 
+students are not allowed to exploit this fact in their attacks, and 
+they should treat the attacker machine as a remote machine, 
+i.e., the attacker cannot sniff victim DNS server's packets.
+In this lab description, we assume that the user machine's IP address is {\tt 10.172.xxx.15}, 
+the DNS Server's IP is {\tt 10.172.xxx.14} and the attacker machine's IP is {\tt 10.172.xxx.16}.
+However, in your lab, you will use your IP addresses, making it clear in your reports which address is for which machine. 
+
+\begin{itemize}
+\item Client User IP \underline{\hspace{3cm}}
+\item DNS Server IP \underline{\hspace{3cm}}
+\item Attacer IP \underline{\hspace{3cm}}
+\end{itemize}
+
+
+% \paragraph {Note for Instructors:} 
+% For this lab, a lab session is desirable, especially if students are
+% not familiar with the tools and the environments. If an instructor
+% plans to hold a lab session (by himself/herself or by a TA), it
+% is suggested that the following are covered in the
+% lab session~\footnote{We assume that the instructor has already covered
+% the concepts of the attacks in the lecture, so we do not include
+% them in the lab session.}:
+% \begin{enumerate}
+  % \item The use of the virtual machine software. 
+
+  % \item The use of {\tt Wireshark}.
+
+  % \item Configuration of {\tt BIND 9} DNS server\cite{bib2}.
+% \end{enumerate}
+
+
+\subsection{Configure the Local DNS server {\tt Target}} 
+
+\paragraph{Step 1: Install the {\tt BIND 9} DNS server.} 
+The {\tt BIND 9} server program is already installed in our pre-built
+\ubuntu VM image. The {\tt BIND 9} software is installed
+using the following command:
+\begin{verbatim}
+# sudo apt-get install bind9
+\end{verbatim}
+
+
+\paragraph{Step 2: Create the {\tt named.conf.options} file.}
+The DNS server needs to read a configuration file 
+{\tt /etc/bind/named.conf} to start. This configuration file usually includes an option 
+file, which is called {\tt /etc/bind/named.conf.options}. This file should already be present on your DNS server from Lab 2 setup (VM1, .4 IP).   Please confirm the following option is present in the option file: 
+%(DO NOT directly modify the file if
+%\texttt{/etc/bind/named.conf.options} already exists; save it, and create a new
+%file with the following contents): 
+\begin{verbatim}
+options {
+       dump-file       "/var/cache/bind/dump.db";
+};
+\end{verbatim}
+
+It should be noted that the file \texttt{/var/cache/bind/dump.db} 
+is used to dump DNS server's cache. Here are some related commands 
+that you may find useful:
+\begin{verbatim}
+% sudo rndc flush         	// Flush the DNS cache
+% sudo rndc dumpdb -cache 	// Dump the cache to dump.db  
+\end{verbatim}
+
+\paragraph{Step 3: Remove the {\tt example.com} Zone.}
+In this lab, this DNS server will not host the {\tt example.com} domain, so please remove its
+corresponding zone from {\tt /etc/bind/named.conf}. We recommend just commenting out both the blocks rather than deleting. NOTE: We will work solely with {\tt example.net} for this lab. 
+
+\paragraph{Step 4: Configure a Fake Domain Name}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In order for the attack to work, the attacker needs their own domain name (reasons for this will become clearer after you see the explanation below).  Since we do not own a real domain name, we can demonstrate the attack using our fake domain name {\tt ns.dnslabattacker.net} and some extra configuration on {\tt Target}.  We will basically
+add the {\tt ns.dnslabattacker.net}'s IP address to {\tt Target}'s DNS configuration,
+so {\tt Target} does not need to go out asking for the IP address of this
+hostname from a non-existing domain.  In a real-world setting, the {\tt Target}'s query would resolve to the attacker's server, which would be registered with a DNS registrar. 
+
+We first configure the victim's DNS server. 
+Find the file {\tt named.conf.default-zones} in
+the {\tt /etc/bind/} folder, and add the following entry to it:
+
+\begin{verbatim}
+zone "ns.dnslabattacker.net" {
+                type master;
+                file "/etc/bind/db.attacker";
+};
+\end{verbatim}
+
+****Note: Order of these zone entries matters! Please place this zone at the bottom of the file.
+
+Create the file {\tt /etc/bind/db.attacker}, and place the following
+contents in it. We let the attacker's machine and 
+{\tt ns.dnslabattacker.net} share the machine ({\tt 10.172.xxx.16}). Be aware that the format of the following contents 
+can be messed up in the PDF file if you copy and paste. 
+%We have linked the file {\tt db.attacker} in the lab's web site.
+
+\begin{verbatim}
+$TTL 604800
+@		IN		SOA		localhost. root.localhost. (
+                2; Serial
+                604800 ; Refresh
+                86400 ; Retry
+                2419200 ; Expire
+                604800 ) ; Negative Cache TTL;
+@		IN		NS		ns.dnslabattacker.net.
+@		IN		A		10.172.xxx.16
+@		IN		AAAA ::1
+\end{verbatim}
+
+Once the setup is finished, if your cache poisoning attack is successful, any 
+DNS query sent to {\tt Target} for the hostnames 
+in {\tt example.net} will be sent to {\tt 10.172.xxx.16}, which is 
+attacker's machine. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{Step 5: Start DNS server.}
+We can now start the DNS server using the following commands:
+
+\begin{verbatim}
+% sudo /etc/init.d/bind9 restart
+or
+% sudo service bind9 restart
+\end{verbatim}
+
+\subsection{Configure the Attacker MAchine}
+We need to configure a malicious DNS server on {\tt 10.172.xxx.16}, so it answers the 
+queries for the domain {\tt example.net} once the attack is executed.  Add the following 
+entry in {\tt /etc/bind/named.conf.local} on {\tt 10.172.xxx.16}:
+
+\begin{verbatim}
+zone "example.net" {
+                type master;
+                file "/etc/bind/example.net.db";
+};
+\end{verbatim}
+
+Create a file called {\tt /etc/bind/example.net.db}, and fill it with
+the following contents. Please do not directly copy and paste
+from the PDF file, as the format may be messed up.
+%You can download the {\tt example.net.db} file from
+%the lab's web site. 
+
+\begin{verbatim}
+$TTL 3D
+@               IN         SOA ns.example.net. admin.example.net. (
+                2008111001
+                8H
+                2H
+                4W
+                1D)	
+@               IN          NS          ns.dnslabattacker.net.
+@               IN          MX          10 mail.example.net.
+www             IN          A           1.1.1.1	
+mail            IN          A           1.1.1.2
+*.example.net   IN          A           1.1.1.100
+\end{verbatim}
+
+
+
+\subsection{Configure the User Machine} 
+\label{subsec:user_machine}
+
+On the user machine {\tt 10.172.xxx.15}, we need to use 
+{\tt 10.172.xxx.14} as the default DNS server. This is achieved by changing
+the DNS setting file \texttt{/etc/resolv.conf} of the user machine:
+
+\begin{verbatim}
+  nameserver 10.172.xxx.14 # the ip of the DNS server you just setup
+\end{verbatim}
+
+% \noindent
+% Note: make sure that this is the only nameserver entry in your \texttt{/etc/resolv.conf}.
+% Also note that, in \ubuntu, {\tt /etc/resolv.conf} may be overwritten by
+% the DHCP client. To avoid this, disable DHCP by doing the following (in \ubuntu 12.04):
+
+% \begin{verbatim}
+   % Click "System Settings" -> "Network",
+   % Click "Options" in "Wired" Tab,
+   % Select "IPv4 Settings" -> "Method" ->"Automatic(DHCP) Addresses Only"
+   % and update only "DNS Servers" entry with IP address of BIND DNS Server.
+
+   % Now Click the "Network Icon" on the top right corner and Select 
+   % "Auto eth0". This will refresh the wired network connection and 
+   % updates the changes.
+% \end{verbatim}
+% You should restart your \ubuntu machine for the modified settings to
+% take effect.
+
+
+% \subsection{The Wireshark Tool}
+
+% {\tt Wireshark} is a very important tool for this lab, and you 
+% probably need it to learn how exactly DNS works, as well as 
+% debugging your attacks.  This tool is already installed in our pre-built VM.
+
+
+
+\section{Lab Tasks}
+
+
+The main objective of Pharming attacks is to redirect the user
+to another machine $B$ when the user tries to get to machine $A$ using
+$A$'s host name. For example, assuming {\tt www.example.net} is an online banking 
+site.  When the user tries to access this site using the
+correct URL {\tt www.example.net}, if the adversaries can redirect the user 
+to a malicious web site that looks very much like 
+{\tt www.example.net}, the user might be fooled and give away 
+his/her credentials to the attacker. 
+
+%When a user types in {\tt www.example.net} in the browser, the user's 
+%machine will issue a DNS query to find out the IP address of this web site. 
+%This request goes to the machine's local DNS server, which will be the 
+%target of our attack. If your attack is successful, the local DNS server
+%will return an IP address that is decided by the attacker, instead of the 
+%original IP address of {\tt www.example.net}, essentially leading the user
+%to the attacker's machine.  
+
+
+In this task, we use the domain name {\tt www.example.net}
+as our attacking target. It should be noted that the {\tt example.net} 
+domain name is reserved for use in documentation, not for 
+any real company. The authentic IP address of {\tt www.example.net} is 
+%BHK Orginal write up wrong!
+{\tt 93.184.216.34}, and it is name server is managed by
+the Internet Corporation for Assigned Names and Numbers (ICANN).
+When the user runs the {\tt dig} command 
+on this name or types the name in the browser, 
+the user's machine sends a DNS query to its local DNS 
+server, which will eventually ask for the IP address 
+from {\tt example.net}'s name server. 
+
+
+The goal of the attack is to launch the DNS cache poisoning attack
+on the local DNS server, such that 
+when the user runs the {\tt dig} command to find out {\tt
+www.example.net}'s IP address, the local DNS server will end
+up going to the attacker's name server {\tt ns.dnslabattacker.net} 
+to get the IP address, so the IP address returned can be 
+any number that is decided by the attacker. As a result, the 
+user will be led to the attacker's web site,
+instead of the authentic {\tt www.example.net}.
+
+
+
+There are two tasks in this attack: cache poisoning and result
+verification.  In the first task, 
+students need to poison the DNS cache of the user's local DNS server {\tt
+Apollo}, such that, in {\tt Target}'s DNS cache,
+{\tt ns.dnslabattacker.net} is set as the name server for 
+the {\tt example.net} domain, instead of the domain's 
+registered authoritative name server. 
+In the second task, students need to demonstrate the impact of the attack.
+More specifically, they need to run the command {\tt "dig
+www.example.net"} from the user's machine, and the returned 
+result must be a fake IP address. 
+
+
+
+
+\begin{figure}[!htb]
+\centering
+\includegraphics*[width=0.9\textwidth]{DNS_Remote_Flow1.png}
+\caption{The complete DNS query process} 
+\label{fig:flow_diagram1}
+\end{figure}
+
+
+\begin{figure}[!htb]
+\centering
+\includegraphics*[width=0.9\textwidth]{DNS_Remote_Flow2.png}
+\caption{The DNS query process when {\tt example.net}'s name server is cached}
+\label{fig:flow_diagram2}
+\end{figure}
+
+
+\subsection{Task 1: Remote Cache Poisoning}
+
+In this task, the attacker sends a DNS query request to the victim
+DNS server, triggering a DNS query from {\tt Target}. The
+query may go through one of the root DNS servers, the {\tt .COM} DNS server, and 
+the final result will come back from {\tt example.net}'s DNS server. This 
+is illustrated in Figure~\ref{fig:flow_diagram1}. In case that 
+{\tt example.net}'s name server information is already cached by 
+{\tt Target}, the query will not go through the root or the 
+{\tt .COM} server; this is illustrated in Figure~\ref{fig:flow_diagram2}.
+In this lab, the situation depicted in  Figure~\ref{fig:flow_diagram2} is 
+more common, so we will use this figure as the basis to describe 
+the attack mechanism.
+
+While {\tt Target} waits for the DNS reply from {\tt example.net}'s name
+server, the attacker can send forged replies to {\tt Target}, pretending 
+that the replies are from {\tt example.net}'s name server. If the forged 
+replies arrive first, it will be accepted by {\tt Target}. The attack will
+be successful.
+
+
+
+When the attacker and the DNS server are not on the same LAN,
+the cache poisoning attack becomes more difficult.
+The difficulty is mainly caused by the fact that the transaction ID
+in the DNS response packet must match with that 
+in the query packet. Because the transaction ID in the query is 
+usually randomly generated, without seeing the query packet,
+it is not easy for the attacker to know the correct ID.
+
+
+Obviously, the attacker can guess the transaction ID. Since the
+size of the ID is only 16 bits, if the attacker can forge $K$ 
+responses within the attack window (i.e. before the legitimate
+response arrives), the probability of success is $K$ over $2^{16}$.
+Sending out hundreds of forged responses is not impractical, so
+it will not take too many tries before the attacker can succeed. 
+
+
+However, the above hypothetical attack has overlooked the cache effect.
+In reality, if the attacker is not fortunate enough to make a correct guess before
+the real response packet arrives, correct information will be cached 
+by the DNS server for a while. This caching effect makes it impossible
+for the attacker to forge another response regarding the same 
+domain name, because the DNS server will not send out another DNS query for 
+this domain name before the cache times out.
+To forge another response on the same domain name, the attacker has to 
+wait for another DNS query on this domain name, which means he/she has to
+wait for the cache to time out. The waiting period can be hours or days.
+
+
+\paragraph{The Kaminsky Attack.} 
+Dan Kaminsky came up with an elegant techique to defeat the caching effect~\cite{Kaminsky}.
+With the Kaminsky attack, attackers will be able to continuously attack
+a DNS server on a domain name, without the need for waiting, so
+attacks can succeed within a very short period of time.
+Details of the attacks are described in~\cite{Kaminsky}. 
+In this task, we will try this attack method. The following steps with reference to 
+Figure~\ref{fig:flow_diagram2} outlines the attack. 
+
+\begin{enumerate}
+\item The attacker queries the DNS Server {\tt Target} for a non-existing name in 
+{\tt example.net}, such as {\tt twysw.example.net},
+where {\tt twysw} is a random name. 
+
+\item Since the mapping is unavailable in {\tt Target}'s DNS cache, 
+{\tt Target} sends a DNS query to the name server of
+the {\tt example.net} domain.
+
+\item While {\tt Target} waits for the reply, 
+the attacker floods {\tt Target} with a stream of spoofed DNS response\cite{bib6}, 
+each trying a different transaction ID, hoping one is correct.
+In the response, not only does the attacker provide an IP resolution
+for {\tt twysw.example.net}, the attacker 
+also provides an ``Authoritative Nameservers'' record, indicating 
+{\tt ns.dnslabattacker.net} as the name server for the {\tt example.net} domain.
+If the spoofed response beats the actual responses and
+the transaction ID matches with that in the query, 
+{\tt Target} will accept and cache the spoofed answer, and
+and thus {\tt Target}'s DNS cache is poisoned.  
+
+\item Even if the spoofed DNS response fails (e.g.
+the transaction ID does not match or it comes too late),
+it does not matter, because the next time, the attacker will query
+a different name, so {\tt Target} has to send out another query, 
+giving the attack another chance to do the spoofing attack. 
+This effectively defeats the caching effect.
+
+
+\item If the attack succeeds, in {\tt Target}'s DNS cache, the
+name server for {\tt example.net} will be replaced by the attacker's
+name server {\tt ns.dnslabattacker.net}.
+To demonstrate the success of this attack, students need to show that such a record 
+is in {\tt Target}'s DNS cache. Figure~\ref{fig:cache_screenshot} shows 
+an example of poisoned DNS cache.
+
+\end{enumerate}
+
+{\em Why did we have to create an additional DNS entry on {\tt Target}?}  When {\tt Target} receives the DNS query, it searches
+for {\tt example.net}'s {\tt NS} record in its cache,
+and finds {\tt ns.dnslabattacker.net}.
+It will therefore send a DNS query to {\tt ns.dnslabattacker.net}.
+However, before sending the query, it needs to know the IP address of 
+{\tt ns.dnslabattacker.net}. This is done by issuing a seperate DNS query. This seperate query is why we created a DNS entry on the {\tt Target } server.  The domain name {\tt dnslabattacker.net} does not exist in reality.
+We created this name for the purpose of this lab. If we did not create that entry {\tt Target} will soon
+find out that the name does not exist, and mark the {\tt NS} entry invalid, essentially recovering from the poisoned cache.
+
+
+\paragraph{Attack Configuration.} We need to make the following configuration
+for this task:
+
+\begin{enumerate}
+
+\item {\em Configure the Attack Machine.} 
+We need to configure the attack machine, so it uses the targeted 
+DNS server (i.e., {\tt Target}) as its default DNS server. Please 
+refer back to Section~\ref{subsec:user_machine} for the instructions on how to do this. 
+Make sure that the network configuration
+for this VM is {\tt "NAT Network"}.
+
+
+\item {\em Source Ports.} Some DNS servers now randomize the source port number 
+in the DNS queries; this makes the attacks much more difficult. Unfortunately, 
+many DNS servers still use predictable source port number.  
+For the sake of simplicity in this lab, we assume that the source port 
+number is a fixed number. We can set the source port for all DNS queries 
+to {\tt 33333}. This can be done by
+adding the following option to the file {\tt /etc/bind/named.conf.options}
+on {\tt Target}:
+\begin{verbatim}
+   query-source port 33333;
+\end{verbatim}
+
+*****Note: This line should be added to the bottom of the {\tt named.conf.options} file. Order matters!
+
+\item {\em DNSSEC.}
+Most DNS servers now adopt a protection scheme called "DNSSEC", which is
+designed to defeat the DNS cache poisoning attack.  If you do not turn
+it off, your attack would be extremely difficult, if possible at all. 
+In this lab, we will turn it off.
+This can be done by changing 
+the file {\tt /etc/bind/named.conf.options} on {\tt Target}. Please find the line 
+{\tt "dnssec-validation auto"}, comment it out, and then add a new line. See
+the following:
+\begin{verbatim}
+ //dnssec-validation auto;
+   dnssec-enable no;
+\end{verbatim}
+
+
+\item {\em Flush the Cache.}
+Flush {\tt Target}'s  DNS cache, and restart its DNS server. NOTE: Failure to this step will result in not getting the correct results.  BONUS: write a detailed explanation why you must do this, see \texturl{https://www.blackhat.com/presentations/bh-dc-09/Kaminsky/BlackHat-DC-09-Kaminsky-DNS-Critical-Infrastructure.pdf} for further details.
+
+
+\end{enumerate}
+
+
+\begin{figure}[!htb]
+\centering
+\includegraphics*[width=1.0\textwidth]{screenshot_packet1.png}
+\caption{A Sample DNS Response Packet}
+\label{fig:response_packet}
+\end{figure}
+
+
+%this task needs a substantial amount of time. Students need to 
+%modify an existing program ({\tt udp.c}) to forge DNS response
+%packets (UDP packets)so that the victim DNS server will cache the
+%malicious name server instead of the benign one. However, the 
+%program only has less than 400 lines of code, and is not difficult 
+%to understand. Students only need to modify a small portion of 
+%the code to construct DNS packets. Students also need 
+%to spend time to understand the format of DNS response packets. 
+
+
+\paragraph{Forge DNS Response Packets.}
+In order to complete the attack, the attacker first needs to send 
+DNS queries to {\tt Target} for some random host names in
+the {\tt example.net} domain. Right after each query is sent out, 
+the attacker needs to forge a large number of DNS response packets in a
+very short time window,
+hoping that one of them has the correct transaction ID and it reaches the target before 
+the authentic response does.
+To make your life easier, we have provid code called {\tt “udp.c”}. 
+This program can send a large number of DNS packets. This program will work without modification, but feel free to modify this
+sample code to practice different variations against your {\tt Target} DNS server.
+
+\begin{enumerate}
+
+\item To run the {\tt udp.c} program: 
+%you need to fill each DNS field with the correct value.  To understand the value in each field, you can use {\tt Wireshark} to capture a few DNS query and response packets. 
+\begin{enumerate}
+\item Compile the program! Note: you should run this from wherever you saved the udp.c file.
+\begin{verbatim}
+gcc -lpcap udp.c -o udp
+\end{verbatim}
+\item Form the command line arguments
+\begin{verbatim}
+sudo ./udp 10.172.XXX.15 10.172.XXX.14 10.172.XXX.16 199.43.135.53
+\end{verbatim}
+where, 
+%1.1.1.1 134.240.247.157 OLD Addresses
+\begin{enumerate}
+\item The first IP is the spoofed query source ip
+\item The second IP is the victim DNS server
+\item The third IP is the spoofed answer IP (malicious server); this could be whatever we want to host, i.e you could use 10.172.XXX.16 or another IP the attacker controls
+\item The fourth IP is the spoofed response source IP, i.e. the IP of the DNS server  to which the {\tt Target} DNS server forwards requests. Here {\tt 199.43.135.53} is an instantce of a root server.  
+
+
+
+\end{enumerate}
+
+
+%\item DNS response packet details: it is not easy to construct a correct DNS
+%response packet. We made a sample packet to help you.
+%Figure~\ref{fig:response_packet} is the screen shot of an example response packet:
+%{\tt 10.0.2.6} is the local DNS server address, and 
+%{\tt 199.43.132.53} is the real name server for {\tt example.net}. The highlighted bytes are the raw UDP payload data, and you need to figure out what they are. The details about how each byte works are explained clearly in Appendix~\ref{sec:response_detail}. There are several techniques used in the response packet, such as the string pointer offset to shorten the packet length. 
+%You may not have to use that technique but it is very common in real packets.
+
+\end{enumerate} 
+\end{enumerate}
+
+Check the {\tt dump.db} file on the {\tt Target} to see whether your spoofed DNS
+response has been successfully accepted by the DNS server. 
+See an example in Figure~\ref{fig:cache_screenshot}.
+
+\begin{figure}[!htb]
+\centering
+%\includegraphics*[viewport=0 0 600 680,width=1.0\textwidth]{Figs/cache_screenshot.pdf}
+\includegraphics*[width=0.85\textwidth]{cache_screen.png}
+\caption{A Sample of Successfully Poisoned DNS Cache}
+\label{fig:cache_screenshot}
+\end{figure}
+
+
+\subsection{Task 2: Result Verification}
+
+
+If your attack is successful, {\tt Target}'s DNS cache will look like 
+that in Figure~\ref{fig:cache_screenshot}, i.e., the {\tt NS} record 
+for {\tt example.net} becomes {\tt ns.dnslabattacker.net}. To make sure
+that the attack is indeed successful, we run the {\tt dig} command 
+on the user machine (VM2) to ask for {\tt www.example.net}'s IP address:{\tt dig www.example.net}. NOTE: if you fail to clear the cache before launch the attack, you will notice that the attack will hijack the domain,{\tt example.net} , but not the {\tt www.example.net} subdomain.  In your lab report, please provide an explanation why.  See the following source: \\
+{\tt https://www.blackhat.com/presentations/bh-dc-09/Kaminsky/} \\
+\indent {\tt BlackHat-DC-09-Kaminsky-DNS-Critical-Infrastructure.pdf}
+
+\section{Submission requirements}
+\subsection{Partner Submission}
+Each team will provide one written lab report, answering each question, and providing evidence for each step taken to include tests. Be sure to include the time spent on the lab and document any external resources used. 
+
+\subsection{Individual Submission}
+Each member needs to submit a detailed lab reflection. This includes 
+\begin{itemize}
+\item How could you use this attack in a practical setting?  I.E. if you wanted to steal someone's banking information, how would this attack help?
+\item List some of the challenges with this attack.  Identify at least three major considerations (two were mentioned already).  {\em HINT:} Consider the DNS server we spoofed in the response packets from when we ran the {\tt udp.c} program.  What would happen if we used a different DNS server further from the local area network? 
+\item any challenging points or thoughts on what you found interesting during the lab 
+\item time spent you personally spent and how much effort you put forth
+\item time your partner spent, and how much effort they put forth
+\item be sure document any external resources used. 
+\end{itemize}
+
+
+\begin{thebibliography}{10}
+
+\bibitem {Kaminsky}
+\newblock D. Schneider.
+\newblock Fresh Phish, How a recently discovered flaw in the Internet's Domain Name
+System makes it easy for scammers to lure you to fake Web sites.
+\newblock {\em IEEE Spectrum}, 2008  
+\newblock{\url{http://spectrum.ieee.org/computing/software/fresh-phish}}
+
+\bibitem{bib1}
+RFC 1035 Domain Names - Implementation and Specification :
+\newblock http://www.rfc-base.org/rfc-1035.html
+
+\bibitem{bib2}
+DNS HOWTO :
+\newblock http://www.tldp.org/HOWTO/DNS-HOWTO.html
+
+\bibitem{bib4}
+Pharming Guide :
+\newblock http://www.technicalinfo.net/papers/Pharming.html
+%\newblock http://www.ngssoftware.com/papers/ThePharmingGuide.pdf
+
+\bibitem{bib5}
+DNS Cache Poisoning:
+\newblock http://www.secureworks.com/resources/articles/other\_articles/dns-cache-poisoning/
+
+\bibitem{bib6}
+DNS Client Spoof:
+\newblock http://evan.stasis.org/odds/dns-client\_spoofing.txt
+
+%\bibitem{bib6}
+%Phishing:
+%\newblock http://en.wikipedia.org/wiki/Phishing
+
+\end{thebibliography}
+
+
+
+
+\end{document}
+

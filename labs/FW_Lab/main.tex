@@ -1,0 +1,689 @@
+
+%\newpage
+%\setcounter{page}{1}
+%\setcounter{section}{0}
+
+\input{header}
+
+\lhead{\bfseries CS482 -- Linux Firewall Exploration Lab}
+
+\begin{document}
+
+
+
+\begin{center}
+{\LARGE Linux Firewall Exploration Lab}\\
+\textbf{35 Points }\\
+\textbf{Due Date: Start of Lesson 12}
+\end{center}
+
+\copyrightnoticeA
+
+\newcounter{task}
+\setcounter{task}{1}
+\newcommand{\tasks} {\bf {\noindent (\arabic{task})} \addtocounter{task}{1} \,}
+
+
+\section{Overview}
+The learning objective of this lab is for students to gain  
+insight into how firewalls work 
+by working with firewall software and implementing a simplified 
+packet filtering firewall.
+Firewalls have several types; in this lab, we focus on 
+%two types:
+{\em packet filter} or {\em stateless} firewalls.%and {\em application} firewall.
+
+Packet filters act by inspecting the individual packets;
+if a packet matches the filter's set of rules, the packet filter will 
+either drop the packet or foward it, depending on what the rules state. 
+Packet filters are usually {\em stateless}; they filter each packet based 
+only on the information contained in that packet, without paying 
+attention to whether a packet is part of an existing stream of traffic.
+Packet filters often use a combination of the packet's source and 
+destination address, protocol, and port numbers.
+\begin{comment}
+An application firewall, on the other hand, works at the application layer and are generally stateful. 
+It can conduct a much more thorough analysis of the packets information before making a decsion. 
+A stateful firewall might only allow inbound traffic from ip address that corresponds to previous outbound. 
+In other words, it remembers the state of the outbound traffic and adaptively applies its inbound traffic rules based on this state.
+An example of a widely used application firewall is a web proxy. 
+Depending on the use and configuration, a web proxy is often used for egress filtering of 
+web traffic or to strip undesirable content from a webpage or email message.  
+In this lab, students will play with both types of firewalls to understand key functionalities of each.
+\end{comment}
+
+\section{Lab Setup}
+You should start by loading up your three Ubuntu systems. Log in and verify the IP and MAC address of each. Write each system information below for future reference. Based on the set-up from lab 3, Attacker's IP should be 10.172.x.12, Victim should be 10.172.x.10, and Observer should be 10.172.x.11.
+
+\begin{verbatim}
+ VM1 (Attacker/Client)    VM2 (Victim/Server)     VM3 (Observer/Proxy)
+   IP: _____________       IP: _____________       IP: ______________
+   MAC:_____________       MAC:_____________       MAC:______________
+          |                         |                        |
+          |_________________________|________________________|
+          |                  Virtual Switch                  |
+          |__________________________________________________|
+\end{verbatim}
+Since our the roles of ourVMs are different in this lab, we are going to change their names to alleviate confusion. We will be renaming Attacker to VM1\_Client, Victim to VM2\_Server, and Observer to VM3\_Proxy. Make sure to prefrence each VM name with your first initial last name (so John Doe's VM1\_Client name would be jdoe\_VM1Client). \textbf{Also, make sure to snapshot your vms prior to starting this lab so you can revert them back to their current state in future labs.} In case you forgot, you change the hostname of your VMs by editing both {\tt /etc/hosts} and {\tt /etc/hostname}. After editing these files, restart your computer with {\tt sudo shutdown -r now}. Alternatively, you can issue {\tt sudo hostnamectl set-hostname <New hostname>} and edit {\tt /etc/hosts}, and then open a new terminal. \textbf{NOTE: Failure to edit {\tt /etc/hosts} is the reason why some students' VMs hang while issuing the {\tt sudo} command.}
+
+\subsection{Before You Begin}
+This lab is much shorter than the DNS lab by design.  The majority of the points will come from how well you documented each task.  To earn full credit, submit a detailed lab report to describe what you have
+done and what you have observed:
+\begin{itemize}
+\item Ensure you describe all processes and results, showing that you completed the tasks, in a detailed lab report. This should also include descriptions explaining the "why" behind these actions
+\item Provide snippets of Wireshark captures that you implement to demonstrate firewall operation
+\end{itemize}
+\textbf{Look at the Rubric and Submission requirements to get a sense of what is important!}
+
+\section{Lab Tasks}
+
+\subsection{Task 1a: Using Firewall - Installing Services}
+In order to test our firewall functionality, we need to have some additional services on our VM2\_Server to test. Using VM2\_Server, download and install telnet using the command:
+
+\begin{verbatim}
+sudo apt-get install telnetd
+\end{verbatim}
+ After this command completes, restarting your networking services by typing: \medskip
+\begin{verbatim}
+sudo service network-manager restart
+\end{verbatim}
+
+Repeat these steps on VM1\_Client.
+
+Finally, you also need to download and install openssh on VM3\_Proxy using the command:
+\begin{verbatim}
+sudo apt-get install openssh-server
+sudo service network-manager restart
+\end{verbatim}
+
+\subsection{Task 1b: Using Firewall - Testing Services}
+
+\linux has a tool called {\tt iptables}, which is essentially a firewall. It has a nice front end program called The Uncomplicated Firewall, or {\tt ufw}. In this task, the objective is to use {\tt ufw} to set up some firewall policies, and 
+observe the behaviors of your system after the policies are implemented.
+You need to start your first two VMs (VM1\_Client \& VM2\_Server). You run the firewall on your VM1\_Client. Basically, we use 
+{\tt ufw} as a personal or {\em host-based} firewall in this task. 
+You can find the manual of {\tt ufw} by typing {\tt "man ufw"} or search for it
+online. It is pretty straightforward to use. Please remember that the
+firewall is not enabled by default, so you should run {\tt sudo ufw enable} to 
+specifically enable it. %\todo{check on this}
+%We also list some commonly used commands 
+%in Appendix~\ref{sec:cheatsheet}.
+Order of rules is important! The firewall will act on the first match. For this task, you will use VM1\_Client and VM2\_Server. VM1\_Client will host the firewall so that your network connection will look like the following setup:
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[width=.9\textwidth]{Figs/firewall.png}
+\end{figure}
+
+\begin{enumerate}
+\item First, check the default firewall configuration on VM1\_Client: {\tt sudo iptables -L -n}
+
+\questionblock{\myquestion What are your default iptables firewall rules? Explain the difference between input, forward and output rules.}
+\item Go to default policy file {\tt /etc/default/ufw}. If 
+{\tt DEFAULT\_INPUT\_POLICY} is {\tt DROP}, please change it to {\tt ACCEPT}.  
+Otherwise, all the incoming traffic will be dropped by default.
+After changing the {\tt DEFAULT\_INPUT\_POLICY} to {\tt ACCEPT}, reset your firefall with {\tt sudo ufw reset}.
+\item Now, enable the UFW: {\tt sudo ufw enable}.
+\item Try telnetting from VM1\_Client to VM2\_Server. To do this, at the command line use the command {\tt telnet} {\tt <target\_IP>}. It will take a minute to connect. Eventually it will ask you to log in to the target system. Use your standard {\tt eecs/scee} credentials. You should be able able to complete a telnet connection. Once you have telnetted to VM2\_Server there are a few key things you should notice: If you successfully changed all the hostnames, you should now see that your command prompt displays eecs@{\tt user}\_VM2\_Server. Typing in {\tt whoami} should return {\tt eecs} still as we have not changed any account name on any of the systems. To double verify that you are in fact telnetted into the correct system, run {\tt ifconfig}. It should provide you with the ip information for VM2\_Server. If this is not the case, you have failed somewhere in establishing your telnet connection and should try again. An example of a successful telnet session is shown below:
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[width=.7\textwidth]{Figs/telnet.png}
+\end{figure}
+
+\questionblock{\myquestion Why is using telnet not recommended as a best practice? Be specific.}
+
+\item Now try SSHing from VM1\_Client to VM3\_Proxy. To do this, open a new {\tt bash} terminal and at the command line use the command {\tt shh} {\tt eecs@<target\_IP>}. After a couple seconds, you will be prompted that the authenticity of host can not be established and asked if want to continue connecting - type yes. If you paid attention during the earlier openssh server install, the install created several SSH keys including the SSH ECDSA key. A careful user would make sure the SSH key created by the server matches the key you receive when connecting to the server. After clicking yes, you will be prompted to enter the password for eecs. At this point, will be connected to an SSH prompt on VM3\_Proxy very similar to the telnet prompt above. Run all the same tests as above to verify your connection. An example of a successful SSH session is shown below:
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[width=.7\textwidth]{Figs/ssh.png}
+\end{figure}
+
+\questionblock{\myquestion Why is using ssh recommended in place of telnet?}
+
+\item The last check before implementing firewall rules is to check the webpage hosted at your VM2\_Server. Inside of VM1\_Client, open up Firefox. In the address bar, type in {\tt 10.172.xxx.yyy/index.html}, where xxx.yyy is the ip of your VM2\_Server. You should have a page pop up that simply says "It Works!". If you do not get this, verify you have done everything correctly. You should also verify that apache2 is running on your VM2\_Server (you disabled in on VM1\_Client, but it should be on by default on VM2\_Server). If it is disabled, re-enabled it using the steps in Section 7 of Lab 1 or by using the below command to set apache2 to start on startup and then restart your network manager.
+\begin{verbatim}
+    sudo update-rc.d apache2 default
+    sudo service network-manager restart
+\end{verbatim}
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[width=.6\textwidth]{Figs/web.png}
+\end{figure}
+\end{enumerate}
+\newpage
+\subsection{Task 1c: Using Firewall - Implementing Rules}
+\begin{enumerate}
+\item On your VM1\_Client system, set up the firewall to prevent VM1\_Client from telneting to VM2\_Server. Use:\\ {\tt  sudo ufw deny out from <Client\_ip> to any port 23}.\\  Now test to verify that you can no longer telnet out of VM1\_Client to VM2 Server using the same steps you followed previously. 
+\item Now prevent VM2 from telneting to VM1. Use:\\ {\tt sudo ufw deny in from <Server\_ip> to <Client\_ip> port 23}. Again, check to verify that this rule has been applied by attempting to telnet to VM1\_Client from VM2\_Server.
+\item Prevent VM1 from visiting an external website on  VM2:
+\begin{verbatim}10.172.xxx.xxx/index.html \end{verbatim}
+If you were to do this for a real website (like facebook.com), keep in mind that most modern web servers have multiple IP addresses so a simple IP based blacklisting would not work. Test this new rule and make sure it works. Note: You will likely have to clear the browser cache to verify your rule applied correctly if you have previously visited the website. To clear the cache, click the three bars in the top right corner (Open menu), then history, then clear recent history, and ensure Cache is selected (just leave all selected) then hit clear now.
+\end{enumerate}
+
+\questionblock{\myquestion What was the command you used to block this webpage hosted at VM2\_Server?}
+
+\questionblock{\myquestion Document your steps using wire capture or appropriate methods}
+
+\subsection{Task 2: Evading Egress Filtering}
+
+In task 1 we blocked telnet and applied egress filtering to prevent users from accessing certain websites/applications. Many companies and schools enforce egress filtering, which blocks users inside of their networks from reaching out to certain websites or Internet services. They do allow users to access other web sites. 
+In many cases, these types of firewalls inspect the destination IP address and port number in the outgoing packet. If a packet matches the restrictions, it will be dropped. They usually do not conduct deep packet inspections (i.e., looking into
+the data part of packets) due to performance reasons. 
+In this task, we show how such egress filtering can be bypassed using
+a tunnel mechanism. There are many ways to establish tunnels; 
+in this task, we only focus on SSH tunnels.
+From task 1, you should have completed:
+\begin{enumerate}
+\item Firewall blocking Telnet from VM1\_Client to VM2\_Server
+\item Firewall blocking Telnet from VM2\_Server to VM1\_Client
+\item Firewall blocking web access to page hosted on VM2\_Server at 10.172.xxx.xxx/index.html
+\end{enumerate}
+
+In addition to setting up the firewall rules, the following commands will be useful for testing implementation going forward: 
+\begin{Verbatim}[frame=single] 
+$ sudo ufw enable          // this will enable the firewall. 
+$ sudo ufw disable         // this will disable the firewall. 
+$ sudo ufw status numbered // this will display the firewall rules. 
+$ sudo ufw delete 3        // this will delete the 3rd rule.
+\end{Verbatim}
+
+
+
+
+\paragraph{Task 2.a: Telnet to VM2\_Server through the firewall using a tunnel}
+
+To bypass the firewall, we could establish an SSH tunnel between
+VM's 1 and 2, so all the telnet traffic will go through this tunnel
+(encrypted), evading  inspection. However, it is unlikely that you will have access to a random distant end server which would allow you to directly establish a encrypted tunnel with them. Usually, if someone is going to attempt to circumvent a firewall, they will connect to a system they can control outside of the network. This system will act as a proxy to the user, allowing them to appear and operate as if they were outside of the company's firewall.  The following command 
+establishes an SSH tunnel between the localhost's (VM1\_Client) port 8000 and 
+VM3\_Proxy port 22. When packets come out of VM3's end, it will
+be forwarded to VM2's port 23 (telnet port). To the user at VM1\_Client, it will appear as if they had just telnetted to VM2\_Server!
+
+\begin{Verbatim}[frame=single] 
+$ ssh -L 8000:VM_2_IP:23  eecs@VM_3_IP
+\end{Verbatim}
+
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[width=0.70\textwidth]{Figs/Tunnel.png}
+        \caption{SSH Tunnel Example}
+        \label{fig:sshtunnel}
+\end{figure}
+\paragraph{} In bullet 1 in the figure, the user attempts to telnet to VM2\_Server, but his company's firewall blocks his connection. In bullet 2, the same user has established an encrypted tunnel to a proxy server, which is set up to forward all requests to VM2\_Server (Bullet 3). Now the user can telnet to VM2\_Server, through the tunnel, effectively bypassing his company firewall.
+
+After establishing the above tunnel, leave the command window open (note that this command window now has a prompt showing it belongs to the VM3\_Proxy.) You will now have to open up a second command terminal in VM1\_Client to execute your telnet to the VM2\_Server:
+
+\begin{Verbatim}[frame=single] 
+$ telnet localhost 8000
+\end{Verbatim}
+
+SSH will transfer all your TCP packets from your end of the tunnel (localhost:8000) to VM3, and from there, the packets will be forwarded to VM2\_Server:23. Replies from VM2\_Server will take a reverse path, and eventually reach your telnet client. This results in you telneting to VM2\_Server despite a firewall in place to block this action!
+
+A summary of the two command windows is shown below for reference:
+
+\begin{figure}[htb]
+        \centering
+        \includegraphics*[width=1\textwidth]{Figs/tunneltoproxy.png}
+\end{figure}
+
+
+
+\questionblock{\myquestion Please describe your observation and explain how you are able to 
+bypass the egress filtering. You should use Wireshark to see
+what exactly is happening on the wire, and include your Wireshark capture (from VM3\_Proxy) and use line numbers in your explanation. Close both sessions once complete.}
+
+
+\paragraph{Task 2.b: Connecting to Facebook using SSH Tunnel.}
+To achieve this goal, we can use the approach similar to that in 
+Task 2.a, i.e., establishing a tunnel between your localhost:port
+and VM3\_Proxy, and ask VM3\_Proxy to forward packets to a website like Facebook. Since our VM's do not have web access, we will use the webpage hosted on VM2\_Server that we discussed earlier in the lab.  To do 
+this, you can use the following command to set up the tunnel:
+{\tt "ssh -L 8000:WebpageIP:80 ..."}. 
+We will not use this approach, and instead, we 
+use a more generic approach, called dynamic port forwarding, instead of a static one
+like that in Task 2.a. While it is not essential, we recommend you configure your browser to not cache anything (see Appendix A). To enable dynamic port forwarding, we only specify the local
+port number, not the final destination. When VM3\_Proxy receives
+a packet from the tunnel, it will dynamically decide where it should 
+forward the packet to based on the destination information of
+the packet.
+\begin{Verbatim}[frame=single] 
+$ ssh -D 9000 -C eecs@VM_3_IP
+\end{Verbatim}
+
+
+Similar to the telnet program, which connects {\tt localhost:9000}, 
+we need to ask Firefox to connect to {\tt localhost:9000} every time it 
+needs to connect to a web server, allowing traffic to
+go through our SSH tunnel. To achieve this, we can tell Firefox to
+use {\tt localhost:9000} as its {\tt SOCKS }proxy. Clear the "HTTP Proxy", "SSL Proxy", "FTP Proxy" settings. The following procedure
+does this:
+\begin{Verbatim}[frame=single] 
+Open Menu (three bars) -> Preferences -> Advanced -> 
+Network tab -> Settings button.
+
+Select Manual proxy configuration
+SOCKS Host: 127.0.0.1      Port: 9000
+SOCKS v5
+No Proxy for: localhost, 127.0.0.1
+\end{Verbatim}
+
+After the setup is done, please do the following:
+
+\begin{itemize}
+\item Run Firefox and go visit the VM2\_Server page. %\todo{Can you see the website hosted at 10.0.0.5?  What is this?}
+
+\item After you get the webpage, break the SSH tunnel, clear the Firefox cache, and try the connection again. Please describe your observation. Note: you are still setup to use the proxy. Since you just killed that connection, you should get a "Proxy server is refusing connections". Go disable the proxy config in Firefox and try again.\\ 
+
+\questionblock{\myquestion Please explain what you have observed, especially
+on why the SSH tunnel can help bypass the egress filtering.} 
+\end{itemize}%double tap
+
+You should use Wireshark to see what exactly is happening on the wire. Describe your observations and a detailed explanation of the packets capture along with the Wireshark screenshot.\\
+
+\questionblock{\myquestion If {\tt ufw} blocks the TCP port 22, which
+is the port used by SSH, can you still set up an SSH tunnel to evade 
+egress filtering?}
+
+
+
+\iffalse
+\subsection{Task 3: Web Proxy (Application Firewall)}
+
+
+There is another type of firewall, which is specific to 
+applications. Instead of inspecting the packets at 
+the transport layer (such as TCP/UDP) and below (such as IP), 
+they look at the application-layer data, and enforce 
+their firewall policies. These firewalls are called 
+application firewalls,  which control input, output,
+and/or access from/to, or by an application or service.
+A widely used category of application firewalls is a web proxy, 
+which is used to control what their protected browsers can
+access. This is a typical egress filtering method, and it is widely
+used by companies and schools to block their employees 
+or students from accessing distracting or inappropriate 
+web sites. 
+
+
+In this task, we will set up a web proxy and perform some 
+tasks based on this web proxy. Do not do anything yet (until Task 3.a). There are a number of 
+web proxy products to choose from. In this lab, we will 
+use a very well-known free software, called {\tt squid}. This software is already installed on your VMs. 
+However, you can easily run the following command to 
+install it.\\
+\begin{Verbatim}[frame=single] 
+$ sudo apt-get install squid
+
+Here are several commands that you may need:
+
+$ sudo service squid3 start     // to start the server
+$ sudo service squid3 restart   // to restart the server
+\end{Verbatim}
+
+
+Once you have installed {\tt squid}, you can go to {\tt /etc/squid3},
+and locate the configuration file called {\tt squid.conf}. This is 
+where you need to set up your firewall policies. Keep in mind that 
+every time you make a change to {\tt squid.conf}, you need to 
+restart the {\tt squid} server; otherwise, your changes will 
+not take effect.
+
+
+\paragraph{Task 3.a: Setup.} You need to set up two VMs, VM1 
+and VM2. VM1 is the one whose browsing behaviors need to be restricted,
+and VM2 is where you run the web proxy. We need to configure
+VM1's Firefox browser, so it always uses the web proxy server on VM2.
+To achieve that, we can tell Firefox to
+use {\tt VM2 IP:3128} as its proxy (by default, {\tt squid} uses 
+port {\tt 3128}, but this can be changed in {\tt squid.conf}).
+The following procedure
+configures {\tt VM2\_IP:3128} as the proxy for Firefox.
+\begin{Verbatim}[frame=single] 
+Edit -> Preferences -> Advanced tab -> Network tab -> Settings button.
+
+Select "Manual proxy configuration"
+Fill in the following information:
+HTTP Proxy: VM2's IP address      Port: 3128
+\end{Verbatim}
+
+Note: to ensure that the browser always uses the proxy server, 
+the browser's proxy setting needs to be locked down, so users cannot 
+change it. There are ways for administrators to do that. If you are 
+interested, you can search the Internet for instructions. Probably a good idea if you are doing the CDX.\\
+
+
+After the setup is done, please perform the following tasks:
+\begin{enumerate}
+\item Try to visit some web sites from VM1's
+Firefox browser, and describe your observation. 
+
+\item By default, all the external web sites are blocked. 
+Please Take a look at the configuration file
+{\tt squid.conf}, and describe what rules have caused that (hint: 
+search for the {\tt http\_access} tag in the file).
+
+\item Make changes to the configuration file, so 
+all web sites are allowed. 
+
+\item Make changes to the configuration file, so only
+the access to {\tt google.com} is allowed. 
+\end{enumerate}
+
+You should turn on your Wireshark, capture packets while 
+performing the above tasks. \\
+\questionblock{\myquestion Using these observations, describe how the web proxy works.}
+
+
+\paragraph{Task 3.b: Using Web Proxy to Evade a Firewall.}
+Ironically, web proxy, which is widely used to do the egress 
+filtering, is also widely used to bypass egress filtering.
+Some networks have a packet-filter type of firewall, which 
+blocks outgoing packets by looking at their destination
+addresses and port numbers. For example, in Task 1,
+we use {\tt ufw} to block the access of Facebook. 
+In Task 2, we have shown that you can use a SSH tunnel to 
+bypass that kind of firewall. In this task, 
+you should do it using a web proxy.
+
+\begin{enumerate}
+\item Try accessing {\tt www.usma.edu} (or whatever website you blocked in task 1). Ensure that {\tt ufw} is still blocking that website.
+\item Edit {\tt squid.conf } on VM2 to allow all access through the proxy by changing the {\tt http\_access} tage to {\tt allow all}
+\item Restart your squid service
+\item Try accessing {\tt www.usma.edu} through the proxy
+\end{enumerate}
+
+\questionblock{\myquestion If {\tt ufw} blocks the TCP port 3128, can 
+you still use web proxy to evade the firewall?}
+
+\questionblock{\myquestion How could you use the evasion technique above in the following scenario: suppose you are internal host on a corporate network and there is a firewall at the perimeter that filters web traffic. How can you go to blocked sites?  Assume the firewall will proxy/filter all Port 80 and 443 traffic from internal hosts. Remember: Internet servers are configured typically to listen only on 80, 443.}
+
+\questionblock{
+\myquestion We can use the SSH and HTTP protocols as tunnels to evade the egress
+filtering. Can we use the ICMP protocol as a tunnel to evade the egress filtering? 
+Please briefly describe how.
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Extra Credit Task: Customizing A Firewall (5 Bonus pts, Individual)} 
+
+The firewall you used in task 1 is a packet filtering 
+type of firewall. The main part of this type of firewall is the filtering part, 
+which inspects each incoming and outgoing packet, and enforces the firewall policies 
+set by the administrator. Since the packet 
+processing is done within the kernel, the filtering must also be 
+done within the kernel. Therefore, it seems that implementing such
+a firewall requires us to modify the \linux kernel. In the past, 
+this has to be done by modifying the kernel
+code, and rebuilding the entire kernel image. The modern \linux 
+operating system provides several new mechanisms 
+to facilitate the manipulation of packets without requiring the 
+kernel image to be rebuilt. These two mechanisms are 
+{\em Loadable Kernel Module} ({\tt LKM}) and {\tt Netfilter}. As a refresher, you can view {\tt http://phrack.org/issues/61/13.html} to spin up on hacking the Linux Kernel using Netfilter hooks. 
+ 
+
+{\tt LKM} allows us to add a new module to the kernel during runtime. 
+This new module enables us to extend the functionalities of the kernel,
+without rebuilding the kernel or even rebooting the computer. 
+The packet filtering part of firewalls can be implemented 
+as an LKM. However, this is not enough. In order for the filtering module to 
+block incoming/outgoing packets, the module 
+must be inserted into the packet processing path. 
+This cannot be easily done in the past before 
+the {\tt Netfilter} was introduced into the \linux.
+
+
+{\tt Netfilter} is designed to facilitate the manipulation of 
+packets by authorized users. {\tt Netfilter} achieves this 
+goal by implementing a number of {\em hooks} in the 
+\linux kernel. These hooks are inserted into various places, 
+including the packet incoming and outgoing paths. 
+If we want to manipulate the incoming packets, we simply
+need to connect our own programs (within LKM) to the 
+corresponding hooks. Once an incoming packet arrives, 
+our program will be invoked. Our program can decide 
+whether this packet should be blocked or not; moreover,
+we can also modify the packets using the same program.
+
+\paragraph{Task EC.a: Using a Firewall}
+In this task, you will use LKM and {\tt Netfilter} to implement
+the packet filtering module.  This module will fetch 
+the firewall policies from a data structure, and use the 
+policies to decide whether packets should be blocked or not.
+To make your life easier, so you can focus on the filtering part, 
+the core program ({\tt firewall.c}) has been given to you on the course website. You just need to add the filtering modules (Do the same filtering rules you applied in items 2-4 from Task 1). The following questions reference the given firewall program.
+
+
+\questionblock{
+\myquestion What types of hooks does {\tt Netfilter} support, and what can
+you do with these hooks? Please draw a diagram to show how packets 
+flow through these hooks.
+
+\myquestion Where should you place a hook for ingress filtering, and 
+where should you place a hook for egress filtering?
+
+\myquestion Can you modify packets using {\tt Netfilter}?
+
+\myquestion Provide a code snippet of your firewall rules that you applied. 
+}
+
+If you decide not to do the optional task, please skip questions 13-16.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Lab Notes/Comments}
+
+\subsection{Loadable Kernel Module (Extra Credit task comments)}
+
+The following is a simple loadable kernel module. It prints out 
+{\tt "Hello World!"} when the module is loaded; when the module
+is removed from the kernel, it prints out {\tt "Bye-bye World!"}.
+The messages are not printed out on the screen; they are 
+actually printed into the {\tt /var/log/syslog} file. You can
+use {\tt dmesg | tail -10} to read the last 10 lines of message.
+
+\begin{Verbatim}[frame=single] 
+#include <linux/module.h>
+#include <linux/kernel.h>
+
+int init_module(void)
+{
+        printk(KERN_INFO "Hello World!\n");
+        return 0;
+}
+
+void cleanup_module(void)
+{
+        printk(KERN_INFO "Bye-bye World!.\n");
+}
+\end{Verbatim}
+
+\noindent
+We now need to create {\tt Makefile}, which includes the following
+contents (the above program is named {\tt hello.c}). Then 
+just type {\tt make}, and the above program will be compiled
+into a loadable kernel module.
+
+
+\begin{Verbatim}[frame=single] 
+obj-m += hello.o
+
+all:
+        make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+
+clean:
+        make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+\end{Verbatim} 
+
+
+
+\noindent
+Once the module is built by typing {\tt make}, you can use the following commands to 
+load the module, list all modules, and remove the module:
+
+\begin{Verbatim}[frame=single] 
+ % sudo insmod mymod.ko        (inserting a module)
+ % lsmod                       (list all modules)
+ % sudo rmmod mymod.ko         (remove the module)
+\end{Verbatim} 
+
+Also, you can use {\tt modinfo mymod.ko} to show information about a 
+Linux Kernel module.
+\fi
+
+
+\section{Submission requirements}
+\subsection{Rubric}
+
+\begin{enumerate}
+    \item Questions 1-4, 8 2 pts
+    \item Documentation questions
+    \begin{enumerate}
+        \item 5 pts question 5
+        \item 5 pts question 7
+        \item 5 pts question 6
+    \end{enumerate}
+    \item 10 points for reflection (purpose of stateless firewalls, princples, lessons learned)
+\end{enumerate}
+\subsection{Partner Submission}
+
+Provide one written lab report, answering each question properly labelled with the number and original question, per partner team. Be sure to include the time spent on the lab and document any external resources used. 
+Again good documentation: 
+\begin{enumerate}
+\item clearly enumerates tasks with a description of you did and evidence.  
+\item shows the progress you were able to achieve.
+\item explains your troubleshooting attempts.
+\item accurately describes an issue and the potential solution (if really good, I will give near full credit).
+\end{enumerate}
+
+
+\subsection{Individual Submission}
+Each member needs to submit a detailed lab reflection. This includes 
+\begin{itemize}
+\item approximately one half page that talks about the various security issues and princples. 
+\item although we have demonstrated various evasion techniques to stateless firewalls, do they still have a purpose?  How would you employ them?
+\item any challenging points or thoughts on what you found interesting during the lab 
+\item time spent you personally spent and how much effort you put forth
+\item time your partner spent, and how much effort they put forth
+\item be sure document any external resources used. 
+\end{itemize}
+
+
+
+\iffalse
+Simply attaching code without any explanation will not receive any credit.
+
+
+% Note: in the manual, don't use the question index, instead, repeat the
+% question, because the question index might change when we revise the lab
+% description and forget to change the manual. 
+
+\vspace{.2in}
+
+%\myquestion: Please convert the 32-bit IP address {\tt "128.230.10.1"} to 
+%an integer of the network byte order, and also as an integer of the 
+%host byte order (please tell us what type of CPU you have on your machine). 
+
+
+
+
+
+\newpage
+\appendix
+
+\section{Firewall Lab CheatSheet} 
+\label{sec:cheatsheet}
+
+\paragraph{Header Files.} You may need to take a look at several header
+files, including the {\tt skbuff.h}, {\tt ip.h}, {\tt icmp.h}, 
+{\tt tcp.h}, {\tt udp.h}, and {\tt netfilter.h}. They are stored in
+the following folder: 
+\begin{Verbatim}[frame=single]
+/lib/modules/$(uname -r)/build/include/linux/
+\end{Verbatim}
+
+
+\paragraph{IP Header.}
+The following code shows how you can get the IP header, and its 
+source/destination IP addresses. 
+\begin{Verbatim}[frame=single]
+struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
+unsigned int src_ip = (unsigned int)ip_header->saddr;
+unsigned int dest_ip = (unsigned int)ip_header->daddr;
+\end{Verbatim}
+
+\paragraph{TCP/UDP Header.}
+The following code shows how you can get the UDP header, and its 
+source/destination port numbers. It should be noted that we 
+use the {\tt ntohs()} function to convert the unsigned short integer 
+from the network byte order to the host byte order. This is because
+in the 80x86 architecture, the host byte order is the Least Significant Byte first, 
+whereas the network byte order, as used on the Internet, is Most Significant Byte
+first. If  you want to put a short integer into a packet, 
+you should use {\tt htons()}, which is reverse to {\tt ntohs()}. 
+\begin{Verbatim}[frame=single]
+struct udphdr *udp_header = (struct udphdr *)skb_transport_header(skb);  
+src_port = (unsigned int)ntohs(udp_header->source);        
+dest_port = (unsigned int)ntohs(udp_header->dest);    
+\end{Verbatim}
+
+
+\paragraph{IP Addresses in diffrent formats.}
+You may find the following library functions useful when you convert
+IP addresses from one format to another (e.g. from a string {\tt "128.230.5.3"}
+to its corresponding integer in the network byte order or the host byte order.
+\begin{Verbatim}[frame=single]
+int inet_aton(const char *cp, struct in_addr *inp);
+in_addr_t inet_addr(const char *cp);
+in_addr_t inet_network(const char *cp);
+char *inet_ntoa(struct in_addr in);
+struct in_addr inet_makeaddr(int net, int host);
+in_addr_t inet_lnaof(struct in_addr in);
+in_addr_t inet_netof(struct in_addr in);
+\end{Verbatim}
+
+
+\paragraph{Using {\tt ufw}.}
+The default firewall configuration tool for Ubuntu is {\tt ufw}, 
+which is developed to ease {\tt iptables} firewall configuration. 
+By default UFW is disabled, so you need to enable it first.
+\begin{Verbatim}[frame=single]
+$ sudo ufw enable            // Enable the firewall
+$ sudo ufw disable           // Disable the firewall
+$ sudo ufw status numbered   // Display the firewall rules
+$ sudo ufw delete 2          // Delete the 2nd rule
+\end{Verbatim}
+
+\paragraph{Using {\tt squid}.} The following commands are related to {\tt
+squid}.
+\begin{Verbatim}[frame=single]
+$ sudo service squid3 start         // start the squid service
+$ sudo service squid3 restart       // restart the squid service
+$ sudo service squid3 stop          // stop the squid service
+
+/etc/squid3/squid.conf:  This is the squid configuration file. 
+\end{Verbatim}
+\fi
+
+\newpage
+\section{Appendix A}
+These instructions will show you to disable caching on your web browser so that every time you reload a web page, the browser contacts your web server for it instead of using a local version of the page.  
+
+\begin{itemize} 
+\item In the Firefox address bar, type {\tt about:config} to get a page of various preferences that you can change.  You will first be presented with a warning, click ``I'll be careful, I promise!''.  
+\item In the ``Search:''  at the top, type {\tt browser.cache} to filter for the cache options (see Figure \ref{fig:browsercache}).  
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=.9\textwidth]{Figs/Firefox-cache.png}
+    \caption{Configuring the Firefox browser cache}
+    \label{fig:browsercache}
+\end{figure}\item Locate and change entries as follows:
+
+\begin{enumerate}
+\item {\tt browser.cache.memory.enable} -- double-click to set the Value to ``false''.  This will turn off browser caching in memory.
+\item {\tt browser.cache.disk.enable} -- double-click to set the Value to ``false''.  This will turn off browser caching on the disk drive.
+\item {\tt browser.cache.check\_doc\_frequency} -- double-click to open a dialog box to change the frequency, set this to 1 and click ``OK''.  This will force the browser to verify a page each time you load it.
+\end{enumerate}
+\end{itemize}
+
+
+\end{document}

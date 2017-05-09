@@ -1,0 +1,107 @@
+<!DOCTYPE html><html itemscope itemtype="http://schema.org/Product"><head><script type="text/javascript">// Stop superfish from loading
+window.similarproducts = true</script><style>[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak  {display: none !important; display: none; }</style><title>Login - ShareLaTeX, Online LaTeX Editor</title><link rel="icon" href="/favicon.ico"><link rel="icon" sizes="192x192" href="/touch-icon-192x192.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png"><link rel="mask-icon" href="/mask-favicon.svg" color="#a93529"><link rel="stylesheet" href="https://cdn.sharelatex.com/stylesheets/style.css?fingerprint=30d110ca92678ce9f3af85e26832cfa2"><link rel="alternate" href="https://www.sharelatex.com/login" hreflang="en"><link rel="alternate" href="https://es.sharelatex.com/login" hreflang="es"><link rel="alternate" href="https://pt.sharelatex.com/login" hreflang="pt"><link rel="alternate" href="https://de.sharelatex.com/login" hreflang="de"><link rel="alternate" href="https://fr.sharelatex.com/login" hreflang="fr"><link rel="alternate" href="https://cs.sharelatex.com/login" hreflang="cs"><link rel="alternate" href="https://nl.sharelatex.com/login" hreflang="nl"><link rel="alternate" href="https://sv.sharelatex.com/login" hreflang="sv"><link rel="alternate" href="https://it.sharelatex.com/login" hreflang="it"><link rel="alternate" href="https://tr.sharelatex.com/login" hreflang="tr"><link rel="alternate" href="https://cn.sharelatex.com/login" hreflang="zh-CN"><link rel="alternate" href="https://no.sharelatex.com/login" hreflang="no"><link rel="alternate" href="https://da.sharelatex.com/login" hreflang="da"><link rel="alternate" href="https://ru.sharelatex.com/login" hreflang="ru"><link rel="alternate" href="https://ko.sharelatex.com/login" hreflang="ko"><link rel="alternate" href="https://ja.sharelatex.com/login" hreflang="ja"><meta itemprop="name" content="ShareLaTeX, the Online LaTeX Editor"><meta itemprop="description" name="description" content="An online LaTeX editor that's easy to use. No installation, real-time collaboration, version control, hundreds of LaTeX templates, and more."><meta itemprop="image" name="image" content="https://www.sharelatex.com/favicon.ico"><script type="text/javascript">(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-11004462-4', 'sharelatex.com');
+ga('send', 'pageview');</script><script type="text/javascript">window.csrfToken = "v6yMvXNO-hYW6yZbtiMltEcDJ4rQq3qfcV0Y";
+</script><script src="https://cdn.sharelatex.com/minjs/libs/jquery-1.11.1.min.js"></script><script type="text/javascript">var noCdnKey = "nocdn=true"
+var cdnBlocked = typeof jQuery === 'undefined'
+var noCdnAlreadyInUrl = window.location.href.indexOf(noCdnKey) != -1 //prevent loops
+if (cdnBlocked && !noCdnAlreadyInUrl && navigator.userAgent.indexOf("Googlebot") == -1) {
+	window.location.search += '&'+noCdnKey;
+}
+</script><script src="https://cdn.sharelatex.com/minjs/libs/angular-1.3.15.min.js"></script><script>window.sharelatex = {
+	siteUrl: 'https://www.sharelatex.com',
+	jsPath:  '/minjs/',
+	sixpackDomain: 'https://sixpack.sharelatex.com'
+};
+window.systemMessages = [];
+window.ab = {};
+window.user_id = '';
+</script><script>window.sharelatex.algolia = {
+	app_id:'SK53GL4JLY',
+	api_key:'1606ccef5b70ac44680b61e6b0285126',
+	indexes:{"templates":"templates-production","institutions":"institutions","wiki":"learn-wiki","kb":"kb-wiki"}
+}
+</script><script>window.sharelatex.templates = {
+	user_id : '515d4e908d2c843b4a00620b',
+	cdnDomain : 'https://cdn.sharelatex.com',
+	indexName : 'templates-production'
+}
+</script></head><body><div class="system-messages" ng-cloak ng-controller="SystemMessagesController"><div class="system-message" ng-repeat="message in messages" ng-controller="SystemMessageController" ng-hide="hidden"><a class="pull-right" href ng-click="hide()">&times;</a><div class="system-message-content" ng-bind-html="htmlContent"></div></div></div><nav class="navbar navbar-default"><div class="container-fluid"><div class="navbar-header"><button class="navbar-toggle" ng-init="navCollapsed = true" ng-click="navCollapsed = !navCollapsed" ng-class="{active: !navCollapsed}"><i class="fa fa-bars"></i></button><a class="navbar-brand" href="/"></a></div><div class="navbar-collapse collapse" collapse="navCollapsed"><ul class="nav navbar-nav navbar-right"><!-- loop over header_extras--><li class="subdued"><a class="subdued" href="/user/subscription/plans">Plans &amp; Pricing</a></li><li class="dropdown subdued" dropdown><a class="dropdown-toggle" href dropdown-toggle>Help<b class="caret"></b></a><ul class="dropdown-menu"><li><a href="/learn">Documentation</a></li><li><a ng-controller="ContactModal", ng-click="contactUsModal()", href>Contact Us</a></li></ul></li><!-- logged out--><!-- register link--><li><a href="/register">Register</a></li><!-- login link--><li><a href="/login">Log In</a></li><!-- projects link and account menu--></ul></div></div></nav><div class="content content-alt"><div class="container"><div class="row"><div class="col-md-6 col-md-offset-3 col-lg-4 col-lg-offset-4"><div class="card"><div class="page-header"><h1>Log In</h1></div><form async-form="login" name="loginForm" action="/login" method="POST" ng-cloak><input name="_csrf" type="hidden" value="v6yMvXNO-hYW6yZbtiMltEcDJ4rQq3qfcV0Y"><form-messages for="loginForm"></form-messages><div class="form-group"><input class="form-control" type="email" name="email" required placeholder="email@example.com" ng-model="email" ng-model-options="{ updateOn: 'blur' }" ng-init="email = undefined" focus="true"><span class="small text-primary" ng-show="loginForm.email.$invalid &amp;&amp; loginForm.email.$dirty">Must be an email address</span></div><div class="form-group"><input class="form-control" type="password" name="password" required placeholder="********" ng-model="password"><span class="small text-primary" ng-show="loginForm.password.$invalid &amp;&amp; loginForm.password.$dirty">Required</span></div><div class="actions"><button class="btn-primary btn" type="submit" ng-disabled="loginForm.inflight"><span ng-show="!loginForm.inflight">Login</span><span ng-show="loginForm.inflight">Logging in...</span></button><a class="pull-right" href="/user/password/reset">Forgot your password?</a></div></form></div></div></div></div></div><div ng-controller="AbTestController"></div><footer class="site-footer"><div class="container"><div class="row"><ul class="col-md-9"><li class="dropdown dropup subdued" dropdown><a class="dropdown-toggle" href="#" dropdown-toggle data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" tooltip="Language"><figure class="sprite-icon sprite-icon-lang sprite-icon-en"></figure></a><ul class="dropdown-menu" role="menu"><li class="dropdown-header">Language</li><li class="lngOption"><a class="menu-indent" href="https://www.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-en"></figure> English</a></li><li class="lngOption"><a class="menu-indent" href="https://es.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-es"></figure> Spanish</a></li><li class="lngOption"><a class="menu-indent" href="https://pt.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-pt"></figure> Portuguese</a></li><li class="lngOption"><a class="menu-indent" href="https://de.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-de"></figure> German</a></li><li class="lngOption"><a class="menu-indent" href="https://fr.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-fr"></figure> French</a></li><li class="lngOption"><a class="menu-indent" href="https://cs.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-cs"></figure> Czech</a></li><li class="lngOption"><a class="menu-indent" href="https://nl.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-nl"></figure> Dutch</a></li><li class="lngOption"><a class="menu-indent" href="https://sv.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-sv"></figure> Swedish</a></li><li class="lngOption"><a class="menu-indent" href="https://it.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-it"></figure> Italian</a></li><li class="lngOption"><a class="menu-indent" href="https://tr.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-tr"></figure> Turkish</a></li><li class="lngOption"><a class="menu-indent" href="https://cn.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-zh-CN"></figure> Chinese</a></li><li class="lngOption"><a class="menu-indent" href="https://no.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-no"></figure> Norwegian</a></li><li class="lngOption"><a class="menu-indent" href="https://da.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-da"></figure> Danish</a></li><li class="lngOption"><a class="menu-indent" href="https://ru.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-ru"></figure> Russian</a></li><li class="lngOption"><a class="menu-indent" href="https://ko.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-ko"></figure> Korean</a></li><li class="lngOption"><a class="menu-indent" href="https://ja.sharelatex.com/login"><figure class="sprite-icon sprite-icon-lang sprite-icon-ja"></figure> Japanese</a></li></ul></li><li>© 2017 ShareLaTeX</li><li><a href="/tos">Terms</a></li><li><a href="/privacy_policy">Privacy</a></li><li><a href="/security">Security</a></li><li><a ng-controller="ContactModal", ng-click="contactUsModal()", href>Contact</a></li><li><a href="/about">About</a></li><li><a href="/blog">Blog</a></li><li><a href="/university?ref=footer">Universities</a></li></ul><ul class="col-md-3 text-right"><li><a href="http://www.twitter.com/sharelatex"><i class='fa fa-twitter-square'></i></a></li><li><a href="http://www.facebook.com/pages/ShareLaTeX/301671376556660"><i class='fa fa-facebook-square'></i></a></li><li><a href="https://plus.google.com/115074691861228882827"><i class='fa fa-google-plus-square'></i></a></li><li><a href="https://github.com/sharelatex/sharelatex"><i class='fa fa-github-square'></i></a></li></ul></div></div></footer><script type="text/javascript">// minimal requirejs configuration (can be extended/overridden)
+window.requirejs = {
+	"paths" : {
+		"moment": "libs/moment-2.9.0"
+	},
+	"urlArgs": "fingerprint=9132d0101d9da83a940d45d87b78ce3c-573dc926bb8ff68146015268eca840fe",
+	"config":{
+		"moment":{
+			"noGlobal": true
+		}
+	}
+};</script><script data-main="https://cdn.sharelatex.com/minjs/main.js" baseurl="https://cdn.sharelatex.com/minjs/" src="https://cdn.sharelatex.com/minjs/libs/require.js?fingerprint=0cb51c1a5e8e978cbe069c07f3b8d16d"></script><script type="text/ng-template" id="supportModalTemplate"><div class="modal-header"><button class="close" type="button" data-dismiss="modal" ng-click="close()">&times;</button><h3>Contact us</h3></div><div class="modal-body contact-us-modal"><span ng-show="sent == false"><label>Subject</label><div class="form-group"><input class="field text medium span8 form-control" ng-model="form.subject" ng-model-options="{ updateOn: 'default blur', debounce: {'default': 350, 'blur': 0} }" maxlength="255" tabindex="1" onkeyup=""></div><div class="contact-suggestions" ng-show="suggestions.length"><p class="contact-suggestion-label">Have you checked our <a href='learn/kb' target='_blank'>knowledge base</a>? </p><ul class="contact-suggestion-list"><li ng-repeat="suggestion in suggestions"><a class="contact-suggestion-list-item" ng-href="{{ suggestion.url }}" ng-click="clickSuggestionLink(suggestion.url);" target="_blank"><span ng-bind-html="suggestion.name"></span><i class="fa fa-angle-right"></i></a></li></ul></div><label class="desc" ng-show="''.length &lt; 1">Email</label><div class="form-group" ng-show="''.length &lt; 1"><input class="field text medium span8 form-control" ng-model="form.email" ng-init="form.email = ''" type="email" spellcheck="false" value="" maxlength="255" tabindex="2"></div><label class="desc" id="title12">Affected project URL (Optional)</label><div class="form-group"><input class="field text medium span8 form-control" ng-model="form.project_url" tabindex="3" onkeyup=""></div><label class="desc">Message</label><div class="form-group"><textarea class="field text medium span8 form-control" ng-model="form.message" type="text" value="" tabindex="4" onkeyup=""></textarea></div><div class="form-group text-center"><input class="btn-success btn btn-lg" type="submit" ng-disabled="sending" ng-click="contactUs()" value="Contact us"></div></span><span ng-show="sent"><p>Request Sent, Thank you.</p></span></div></script><script src="https://cdn.sharelatex.com/minjs/libs/raven-1.1.22.min.js"></script><script type="text/javascript">if (typeof(Raven) != "undefined" && Raven.config) {
+	Raven.config("https://4f0989f11cb54142a5c3d98b421b930a@app.getsentry.com/34706", {
+	tags: { 'commit': '199d8d', 'build': '2383' },
+	release: '2383',
+	// Ignore list based off: https://gist.github.com/1878283
+	ignoreErrors: [
+		'DealPly',
+		// Random plugins/extensions
+		'top.GLOBALS',
+		// See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error.html
+		'originalCreateNotification',
+		'canvas.contentDocument',
+		'MyApp_RemoveAllHighlights',
+		'http://tt.epicplay.com',
+		'Can\'t find variable: ZiteReader',
+		'jigsaw is not defined',
+		'ComboSearch is not defined',
+		'http://loading.retry.widdit.com/',
+		'atomicFindClose',
+		// Facebook borked
+		'fb_xd_fragment',
+		// ISP optimizing proxy - `Cache-Control: no-transform` seems to reduce this. (thanks @acdha)
+		// See http://stackoverflow.com/questions/4113268/how-to-stop-javascript-injection-from-vodafone-proxy
+		'bmi_SafeAddOnload',
+		'EBCallBackMessageReceived',
+		// See http://toolbar.conduit.com/Developer/HtmlAndGadget/Methods/JSInjection.aspx
+		'conduitPage',
+		'/NS_ERROR_NOT_CONNECTED/i',
+		"/Cannot read property 'row' of undefined/i",
+		'TypeError: start is undefined'
+	],
+	ignoreUrls: [
+		// Facebook flakiness
+		/graph\.facebook\.com/i,
+		// Facebook blocked
+		/connect\.facebook\.net\/en_US\/all\.js/i,
+		// Woopra flakiness
+		/eatdifferent\.com\.woopra-ns\.com/i,
+		/static\.woopra\.com\/js\/woopra\.js/i,
+		// Chrome extensions
+		/extensions\//i,
+		/^chrome:\/\//i,
+		// Other plugins
+		/127\.0\.0\.1:4001\/isrunning/i,  // Cacaoweb
+		/webappstoolbarba\.texthelp\.com\//i,
+		/metrics\.itunes\.apple\.com\.edgesuite\.net\//i,
+		/a\.disquscdn\.com/i,
+		/platform\.twitter\.com/i,
+		/pstatic\.datafastguru\.info/i
+	],
+	shouldSendCallback: function(data) {
+		// only send a fraction of errors
+		var sampleRate = 0.01;
+		return (Math.random() <= sampleRate);
+	},
+	dataCallback: function(data) {
+		// remove circular references from object
+		var cache = [];
+		var s = JSON.stringify(data, function(k, v) { if (typeof v === 'object' && v !== null) { if (cache.indexOf(v) !== -1) return "[circular]"; cache.push(v); }; return v; });
+		return JSON.parse(s);
+	}
+	// we highly recommend restricting exceptions to a domain in order to filter out clutter
+	// whitelistUrls: ['example.com/scripts/']
+	}).install();
+}</script></body></html>

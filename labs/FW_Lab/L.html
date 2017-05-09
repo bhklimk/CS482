@@ -1,0 +1,44 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>Firewall</title>
+  <style type="text/css">@import url('../../usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+<h2>Lesson Summary:</h2>
+<p>
+Firewalls have several types; in this lab, we focus on two types, the packet filter and application firewall.
+
+Packet filters act by inspecting the packets; if a packet matches the packet filter's set of rules, the packet 
+filter will either drop the packet or foward it, depending on what the rules say. Packet filters are usually stateless; 
+they filter each packet based only on the information contained in that packet, without paying attention to whether a packet is 
+part of an existing stream of traffic. Packet filters often use a combination of the packet's source and destination address, 
+its protocol, and, for TCP and UDP traffic, port numbers.
+
+Application firewall works at the application layer. A widely used application firewall is web proxy, which is primarily used for 
+egress filtering of web traffic. In this lab, students will play with both types of firewalls, and also through the implementation 
+of some of the key functionalities, they can understand how firewalls work.
+</p>
+
+<h2>Lesson Objectives:</h2>
+<ul>
+<li>Discuss intrusion detection systems, intrusion prevention systems, honeypots, and proxies</li>
+<li>Identify the basic types of firewalls</li>
+<li>Apply sound reasoning to apply appropriate filter rules to a firewall</li>
+<li>Present novel solutions to filter and control network access</li>
+<li>Describe the function of a firewall and its role within a network</li>
+</ul>
+
+<h2>Lab Material/Resources</h2>
+<ul>
+<li><a href="L.pdf">Firewall Labl </a></li>
+<li><a href="main.tex">Firewall tex file</a></li>
+<li><a href="f.zip">Lab files</a></li>
+</ul>
+</body>
+</html>

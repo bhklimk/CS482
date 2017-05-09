@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+ <head>
+  <title>Presentations</title>
+  <style type="text/css">@import url('usma.edu.css');</style>
+  <script type="text/javascript" src="jquery.js"></script>
+ </head>
+
+
+<body>
+
+<h2>Group Presentations</h2>
+<a href="TopicPresentation.docx">Group Presentation Guidance</a>
+
+<h2>Lab: DNS Poisoning (Kaminsky)</h2>
+The objective of this lab is for students to gain the first-hand experience on the remote DNS cache poisoning
+attack, also called the Kaminsky DNS attack [1]. DNS [2] (Domain Name System) is the Internet’s phone
+book; it translates hostnames to IP addresses and vice versa. This translation is through DNS resolution,
+which happens behind the scene. DNS Pharming [4] attacks manipulate this resolution process in various
+ways, with an intent to misdirect users to alternative destinations, which are often malicious. This lab focuses
+on a particular DNS Pharming attack technique, called DNS Cache Poisoning attack. In this remote attack
+lab, packet sniffing is not possible, so the attack becomes much more challenging than if it was conducted
+on the local network.
+<ul>
+<li>Lab Document:<a href="DNSPoison/DNSPoison.pdf">DNS Poisoning Lab Document</a></li>
+<li>Needed Files: 
+<ul><li>Lab Files: <a href="DNSPoison/udp.c">udp.c</a></li></ul>
+<ul><li> <a href="http://www-internal.eecs.usma.edu/courses/cs482/setup/s3.ova">Vulnerable VM</a></li></ul>
+</ul>
+
+
+
+<h2>Lab: Cryptography: Brute Force/Collisions</h2>
+The learning objective of this lab is for students to get familiar with
+one-way hash functions and Message Authentication Code (MAC). Both concepts are integral to the secure communication, user validation, and trusted computing concepts previously discussed in class. At the completion of the lab, students should be capable of validating the originality of program binaries, knowledge of weaknesses in crypto systems, and apply hashing concepts to better secure computer systems and processing methods.
+<ul>
+<li>Lab Document:<a href="Hashing/One_Way_Hash.pdf">One-Way Hash Lab Document</a></li>
+<li>Needed Files:</li>
+<ul>
+<li> <a href="Hashing/oneway.c">oneway.c</a></li>
+<li> <a href="Hashing/collision.c">collision.c</a></li>
+<li> <a href="Hashing/brute.c">brute.c</a></li>
+</ul>
+</ul>
+
+<h2>Lab: Shellshock Attack Lab</h2>
+On January 24, 2014, a severe vulnerability in Bash was identified, and it is called Shellshock. This affects many systems. The vulnerability can be easily exploited either remotely or from a local machine. In this lab, students need to work on this attack, so they can understand the Shellshock vulnerability. 
+<ul>
+<li>Lab Document:<a href="Shellshock/shellshock.pdf">Shellshock Lab Document</a></li>
+<li>Needed Files: 
+<ul><a href="Shellshock/variables.c">variables.c</a></li></ul>
+<ul><li> <a href="http://www-internal.eecs.usma.edu/courses/cs482/setup/s3.ova">Vulnerable VM</a></li></ul>
+<li>Additional Reference Material:</li>
+<ul>
+<li><a href="https://bitbucket.org/carter-yagemann/shellshock">Carter's Shellshock Bitbucket</a></li>
+<li><a href="http://lcamtuf.blogspot.co.nz/2014/09/quick-notes-about-bash-bug-its-impact.html">Icamtuf Shellshock Blog</a></li>
+</ul>
+</ul>
+<h2>Lab: Buffer Overflow</h2>
+The learning objective of this lab is for students to gain the first-hand experience on buffer-overflow vulnerability
+by putting what they have learned about the vulnerability from class into action. Buffer overflow is
+defined as the condition in which a program attempts to write data beyond the boundaries of pre-allocated
+fixed length buffers. This vulnerability can be utilized by a malicious user to alter the flow control of the
+program, even execute arbitrary pieces of code. This vulnerability arises due to the mixing of the storage
+for data (e.g. buffers) and the storage for controls (e.g. return addresses): an overflow in the data part can
+affect the control flow of the program, because an overflow can change the return address.
+In this lab, students will be given a program with a buffer-overflow vulnerability; their task is to develop
+a scheme to exploit the vulnerability and finally gain the root privilege. In addition to the attacks, students
+will be guided to walk through several protection schemes that have been implemented in the operating
+system to counter against the buffer-overflow attacks. Students need to evaluate whether the schemes work
+or not and explain why.<ul>
+<li>Lab Document:<a href="Buffer/BuffOverflow.pdf">Buffer Overflow</a></li>
+<li>Needed Files:</li>
+<ul>
+<li> <a href="Buffer/exploits.zip">exploits</a></li>
+<li> <a href="Buffer/buffer_slides.pptx">Slides</a></li>
+<li> <a href="http://www-internal.eecs.usma.edu/courses/cs482/setup/s3.ova">Vulnerable VM</a></li>
+</ul>
+</ul>
+
+<h2>Lab: Return to Libc</h2>
+The learning objective of this lab is for students to gain the
+first-hand experience on an interesting variant of buffer-overflow
+attack; this attack can bypass an existing protection scheme currently
+implemented in major Linux operating systems.
+<ul>
+<li>Lab Document:<a href="Libc/rtn2libc.pdf">rtn2libc</a></li>
+<li>Needed Files:</li>
+<ul>
+
+
+
+
+</ul>
+</ul>
+</td></tr>
+
+
+</body>
+</html>
